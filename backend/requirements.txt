@@ -1,0 +1,15 @@
+# Backend lokal MVP — tanpa dependency Django, ML, PostgreSQL, atau auth.
+# Simpan versi ter-resolve di lockfile jika kelak memakai package manager ber-lock.
+
+# Runtime
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.34,<1.0
+sqlmodel>=0.0.24,<1.0
+alembic>=1.15,<2.0
+pydantic-settings>=2.8,<3.0
+python-dotenv>=1.0,<2.0
+
+# Development & tests
+httpx>=0.28,<1.0
+pytest>=8.3,<10.0
+ruff>=0.9,<1.0
