@@ -1,8 +1,9 @@
+from collections.abc import Generator
 from pathlib import Path
 
 from sqlalchemy import event
 from sqlalchemy.engine import make_url
-from sqlmodel import create_engine
+from sqlmodel import Session, create_engine
 
 from app.config import get_settings
 
@@ -32,3 +33,9 @@ if database_url.get_backend_name() == "sqlite":
         cursor = connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
+
+
+def get_session() -> Generator[Session, None, None]:
+    """Yield a synchronous SQLModel database session per request."""
+    with Session(engine) as session:
+        yield session

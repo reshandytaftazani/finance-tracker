@@ -4,6 +4,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.health import router as health_router
 from app.config import get_settings
+from app.security import MutationProtectionMiddleware
 
 settings = get_settings()
 
@@ -13,15 +14,19 @@ app = FastAPI(
 )
 
 app.add_middleware(
-    TrustedHostMiddleware,
-    allowed_hosts=["127.0.0.1", "localhost", "testserver"],
-)
-app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=settings.allowed_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PATCH", "DELETE"],
     allow_headers=["Content-Type"],
+)
+app.add_middleware(
+    MutationProtectionMiddleware,
+    allowed_origins=settings.allowed_origins,
+)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=settings.allowed_hosts,
 )
 
 app.include_router(health_router)
