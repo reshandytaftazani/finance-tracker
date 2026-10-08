@@ -27,3 +27,6 @@ backups/
 *.sqlite3-shm
 .pytest_cache/
 .ruff_cache/
+
+# Rencana pengembangan pribadi; hanya disimpan lokal.
+/PLANNING.local.md
