@@ -1,7 +1,7 @@
-import { Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { fetchCategories, fetchTransactions } from "../api/transactions";
+import { exportTransactions, fetchCategories, fetchTransactions } from "../api/transactions";
 import { DeleteTransactionDialog } from "../components/DeleteTransactionDialog";
 import { TransactionForm } from "../components/TransactionForm";
 import { formatDate, formatRupiah } from "../lib/formatters";
@@ -13,6 +13,9 @@ export function TransactionsPage() {
   const [editor, setEditor] = useState<{ transaction: Transaction | null } | null>(null);
   const [deleting, setDeleting] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+  const exportPending = useRef(false);
   const opener = useRef<HTMLElement | null>(null);
   const focusAfterClose = useRef(false);
   const addButton = useRef<HTMLButtonElement>(null);
@@ -40,6 +43,8 @@ export function TransactionsPage() {
   }, [editor, deleting]);
 
   function updateFilter(changes: Partial<TransactionFilters>) {
+    setExportError("");
+    setNotice("");
     setFilters((previous) => ({ ...previous, ...changes, page: 1 }));
   }
   function restoreFocus() {
@@ -52,6 +57,36 @@ export function TransactionsPage() {
   }
   function closeEditor() { setEditor(null); restoreFocus(); }
 
+  async function downloadCSV() {
+    if (exportPending.current || !validMonth) return;
+    exportPending.current = true;
+    setExporting(true);
+    setExportError("");
+    setNotice("");
+    // Capture this click's filters; changing the visible list cannot change the
+    // in-flight export's period or filename.
+    const snapshot = { ...filters };
+    try {
+      const blob = await exportTransactions(snapshot);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `transaksi-${snapshot.month}.csv`;
+      document.body.append(link);
+      try { link.click(); } finally {
+        link.remove();
+        // Let the browser start consuming the Blob before releasing its URL.
+        window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      setNotice(`Download CSV dimulai untuk bulan ${snapshot.month}, sesuai filter saat export. Periksa folder download browser.`);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Coba lagi export setelah memastikan backend berjalan.");
+    } finally {
+      exportPending.current = false;
+      setExporting(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
@@ -59,12 +94,23 @@ export function TransactionsPage() {
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Transaksi</h1>
           <p className="mt-1 text-sm text-slate-600">Pencatatan manual pemasukan dan pengeluaran harian.</p>
         </div>
+        <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={exporting || !validMonth} aria-describedby="export-help" onClick={() => void downloadCSV()} className="transaction-button inline-flex items-center justify-center gap-2">
+          <Download aria-hidden="true" className="h-4 w-4" />{exporting ? "Mengekspor…" : "Export CSV"}
+        </button>
         <button ref={addButton} type="button" disabled={Boolean(editor)} onClick={() => openEditor(null)} className="transaction-button transaction-primary inline-flex items-center justify-center gap-2">
           <Plus aria-hidden="true" className="h-4 w-4" />Tambah Transaksi
         </button>
+        </div>
       </header>
 
       <p role="status" className={notice ? "text-sm text-slate-700" : "sr-only"}>{notice}</p>
+      <p id="export-help" className="text-sm text-slate-600">CSV memuat semua transaksi sesuai filter aktif, bukan hanya halaman ini. CSV bukan backup database.</p>
+      {exporting && <p role="status" className="text-sm text-slate-600">Menyiapkan CSV…</p>}
+      {exportError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <p>Export CSV gagal. {exportError}</p>
+        <button type="button" className="transaction-button mt-3" disabled={exporting || !validMonth} onClick={() => void downloadCSV()}>Coba lagi export</button>
+      </div>}
       {categories.isError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
         <p>Kategori gagal dimuat. {categories.error.message}</p>
         <button type="button" className="transaction-button mt-3" onClick={() => void categories.refetch()} disabled={categories.isFetching}>{categories.isFetching ? "Memuat kategori…" : "Coba lagi kategori"}</button>

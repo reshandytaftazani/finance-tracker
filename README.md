@@ -147,6 +147,30 @@ Dashboard masih placeholder hingga Phase 4. Frontend dan API harus memakai hostn
 (default `127.0.0.1`) agar request mutasi tidak ditolak proteksi cross-site. Jika memakai `localhost`,
 atur `VITE_API_BASE_URL=http://localhost:8000` sebelum menjalankan frontend dan buka melalui `localhost`.
 
+### Export CSV
+
+Pada halaman Transaksi, pilih bulan, tipe, dan kategori lalu klik **Export CSV**.
+Download memuat **semua hasil filter**, bukan hanya halaman tabel yang sedang dibuka.
+Jika filter diganti saat export berjalan, file tetap memakai filter saat tombol diklik.
+Filter valid tanpa transaksi menghasilkan file dengan header saja. Kegagalan export
+menampilkan pesan dan tombol coba lagi; browser menentukan lokasi penyimpanan file.
+
+Endpoint `GET /api/v1/transactions/export/csv` memakai `start_date`/`end_date` inklusif,
+`category_id`, dan `type`, dengan pembatasan owner yang sama seperti daftar transaksi.
+Kolomnya `tanggal`, `tipe` (`income`/`expense`), `kategori`, `nominal_rupiah`, `deskripsi`.
+Nominal berupa digit rupiah utuh tanpa pemisah ribuan; CSV memakai UTF-8 dengan BOM,
+delimiter koma, dan quoting untuk koma, kutip, serta baris baru. Bila spreadsheet
+tidak mendeteksi delimiter, pilih **UTF-8** dan **koma** pada dialog import.
+
+Teks yang berpotensi dibaca sebagai formula diberi awalan apostrof (`'`) pada export,
+tanpa mengubah data tersimpan. Beberapa pembaca CSV menampilkan apostrof tersebut.
+Jangan menghapus proteksi ini atau mengubah sel menjadi formula; import kolom teks
+sebagai **teks**, terutama ketika mengedit atau menyimpan ulang di spreadsheet.
+Proteksi saat export bukan jaminan setelah file diubah oleh aplikasi lain.
+Export dibuat dalam memori untuk penggunaan lokal; dataset sangat besar belum menjadi
+target. **CSV bukan backup database:** tidak memuat ID, owner, notes, atau timestamps,
+dan tidak disediakan jalur restore/import CSV. Simpan export pribadi di lokasi privat.
+
 ---
 
 ## Pengujian dan Verifikasi
@@ -172,7 +196,7 @@ npm run build
 ```
 
 `npm test` memakai test runner bawaan Node.js 24 (tanpa dependency tambahan) untuk validasi tanggal/nominal,
-payload API, pagination kategori, error HTTP, dan invalidasi cache transaksi/analytics. Query dashboard
+payload API, pagination kategori, error HTTP, CSV/filter export, dan invalidasi cache transaksi/analytics. Query dashboard
 pada Phase 4 harus memakai prefix `['analytics']` agar ikut diperbarui setelah mutasi.
 
 Tes browser opsional memakai Chrome/Chromium yang sudah terpasang, backend environment yang sama,
@@ -190,7 +214,8 @@ Runner menyalakan server loopback test (default API `18032`, frontend `15132`), 
 Port dapat diubah melalui `TEST_API_PORT`/`TEST_UI_PORT`; pastikan port tersebut kosong.
 Artifact/screenshot dan DB fixture tersimpan di direktori temporary baru yang dilaporkan runner;
 set `TEST_ARTIFACTS_DIR` untuk memilih direktori induknya. Jangan commit artifact/database tersebut.
-Flow yang diuji: tambah 3/hapus 1, edit, filter/pagination, reload, error/retry, double-submit,
+Flow yang diuji: tambah 3/hapus 1, edit, filter/pagination, reload, download CSV nyata sesuai
+filter/lintas halaman, error/retry, double-submit/double-export,
 serta viewport desktop/mobile. Screenshot emulasi bukan pengujian perangkat fisik atau screen reader.
 
 ---
@@ -207,6 +232,7 @@ finance-tracker/
 │   │   ├── main.py          # Inisialisasi aplikasi FastAPI dan middleware
 │   │   ├── models.py        # Model dan constraint domain
 │   │   ├── schemas.py       # Schema API create/update/read
+│   │   ├── services/export.py # Proteksi teks CSV untuk spreadsheet
 │   │   ├── validation.py    # Validasi nominal, tanggal, dan teks
 │   │   ├── dependencies.py  # Resolusi kepemilikan data server-side
 │   │   └── security.py      # Proteksi Host dan Origin

@@ -1,9 +1,12 @@
 """Synchronous, owner-scoped transaction CRUD with exact integer amounts."""
 
+import csv
+import io
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response
-from sqlalchemy import func
+from sqlalchemy import and_, func
 from sqlmodel import Session, select
 
 from app.api.common import (
@@ -15,7 +18,7 @@ from app.api.common import (
     commit_or_conflict,
     find_category,
 )
-from app.models import Transaction, TransactionType, utc_now
+from app.models import Category, Transaction, TransactionType, utc_now
 from app.schemas import (
     LocalDateInput,
     TransactionCreate,
@@ -23,6 +26,7 @@ from app.schemas import (
     TransactionRead,
     TransactionUpdate,
 )
+from app.services.export import spreadsheet_text
 
 router = APIRouter(prefix="/api/v1/transactions", tags=["transactions"])
 
@@ -50,6 +54,31 @@ def validate_category(
         )
 
 
+def transaction_predicates(
+    session: Session,
+    owner_id: int,
+    start_date: date | None,
+    end_date: date | None,
+    category_id: int | None,
+    kind: TransactionType | None,
+):
+    if start_date is not None and end_date is not None and start_date > end_date:
+        raise HTTPException(
+            status_code=422, detail="start_date must not exceed end_date"
+        )
+    predicates = [Transaction.owner_id == owner_id]
+    if start_date is not None:
+        predicates.append(Transaction.date >= start_date)
+    if end_date is not None:
+        predicates.append(Transaction.date <= end_date)
+    if category_id is not None:
+        find_category(session, owner_id, category_id)
+        predicates.append(Transaction.category_id == category_id)
+    if kind is not None:
+        predicates.append(Transaction.type == kind)
+    return predicates
+
+
 @router.get("", response_model=TransactionPage)
 def list_transactions(
     session: SessionDep,
@@ -61,20 +90,9 @@ def list_transactions(
     page: PageNumber = 1,
     page_size: PageSize = 20,
 ):
-    if start_date is not None and end_date is not None and start_date > end_date:
-        raise HTTPException(
-            status_code=422, detail="start_date must not exceed end_date"
-        )
-    predicates = [Transaction.owner_id == owner.id]
-    if start_date is not None:
-        predicates.append(Transaction.date >= start_date)
-    if end_date is not None:
-        predicates.append(Transaction.date <= end_date)
-    if category_id is not None:
-        find_category(session, owner.id, category_id)
-        predicates.append(Transaction.category_id == category_id)
-    if type is not None:
-        predicates.append(Transaction.type == type)
+    predicates = transaction_predicates(
+        session, owner.id, start_date, end_date, category_id, type
+    )
     total = session.exec(
         select(func.count()).select_from(Transaction).where(*predicates)
     ).one()
@@ -100,7 +118,63 @@ def create_transaction(
     return transaction
 
 
-# Task 3.3 must register its static /export/csv route before the ID routes below.
+@router.get(
+    "/export/csv",
+    response_class=Response,
+    responses={200: {"content": {"text/csv": {"schema": {"type": "string"}}}}},
+)
+def export_transactions(
+    session: SessionDep,
+    owner: OwnerDep,
+    start_date: LocalDateInput | None = None,
+    end_date: LocalDateInput | None = None,
+    category_id: Annotated[int | None, Query(ge=1, le=2**63 - 1)] = None,
+    type: TransactionType | None = None,
+):
+    """Export all owner-scoped matches, not just the current pagination page."""
+    predicates = transaction_predicates(
+        session, owner.id, start_date, end_date, category_id, type
+    )
+    rows = session.exec(
+        select(
+            Transaction.date,
+            Transaction.type,
+            Category.name,
+            Transaction.amount_rupiah,
+            Transaction.description,
+        )
+        .join(
+            Category,
+            and_(
+                Category.owner_id == Transaction.owner_id,
+                Category.id == Transaction.category_id,
+                Category.type == Transaction.type,
+            ),
+        )
+        .where(*predicates)
+        .order_by(Transaction.date.desc(), Transaction.id.desc())
+    )
+    output = io.StringIO(newline="")
+    writer = csv.writer(output, quoting=csv.QUOTE_ALL)
+    writer.writerow(["tanggal", "tipe", "kategori", "nominal_rupiah", "deskripsi"])
+    for when, kind, category, amount, description in rows:
+        writer.writerow(
+            [
+                when.isoformat(), kind, spreadsheet_text(category), str(amount),
+                spreadsheet_text(description),
+            ]
+        )
+    return Response(
+        content=output.getvalue().encode("utf-8-sig"),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": 'attachment; filename="transaksi.csv"',
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
 @router.get("/{transaction_id}", response_model=TransactionRead)
 def read_transaction(transaction_id: ResourceID, session: SessionDep, owner: OwnerDep):
     return find_transaction(session, owner.id, transaction_id)

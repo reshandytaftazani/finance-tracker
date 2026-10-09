@@ -2,7 +2,7 @@
 // Requires Chrome/Chromium and the existing backend Python environment.
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, mkdir } from "node:fs/promises";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -149,6 +149,20 @@ try {
   console.log("PASS create 3, inline validation, exact large amount, list refetch");
 
   const rows = () => evaluate("[...document.querySelectorAll('tbody tr')].map(row => row.innerText)");
+
+  // Read the real downloaded file, not a stubbed anchor or mock Blob.
+  const downloads = resolve(artifacts, "downloads");
+  await mkdir(downloads);
+  await send("Browser.setDownloadBehavior", { behavior: "allow", downloadPath: downloads });
+  await click("Export CSV");
+  const download = resolve(downloads, "transaksi-2026-10.csv");
+  await until(async () => (await readFile(download)).length > 0, "CSV download");
+  const initialCSV = await readFile(download, "utf8");
+  assert.ok(initialCSV.startsWith('\ufeff"tanggal","tipe","kategori","nominal_rupiah","deskripsi"'));
+  assert.ok(initialCSV.includes('"9999999999999","UI satu"'));
+  assert.equal(initialCSV.trimEnd().split("\r\n").length, 4);
+  assert.ok((await text()).includes("Download CSV dimulai"));
+  console.log("PASS real UTF-8 CSV download with exact amount");
   await evaluate("{ const button = [...document.querySelectorAll('tbody tr')].find(row => row.innerText.includes('UI satu')).querySelector('button'); button.focus(); button.click(); }");
   await fill("type", "income");
   assert.equal(await evaluate("document.querySelector('[name=category_id]').value"), "");
@@ -167,6 +181,11 @@ try {
   await fill("filter-category", String(salary));
   await waitText("UI pindah");
   console.log("PASS edit date/type/category, dependent category reset, combined filters");
+  await click("Export CSV");
+  const filteredDownload = resolve(downloads, "transaksi-2026-09.csv");
+  await until(async () => (await readFile(filteredDownload)).length > 0, "filtered CSV download");
+  assert.equal(await readFile(filteredDownload, "utf8"), '\ufeff"tanggal","tipe","kategori","nominal_rupiah","deskripsi"\r\n"2026-09-30","income","Gaji","9999999999999","UI pindah"\r\n');
+  console.log("PASS downloaded CSV matches combined month/type/category filter");
 
   await fill("filter-month", "2026-10");
   await fill("filter-type", "all");
@@ -192,6 +211,13 @@ try {
   await waitText("Halaman 1 dari 2");
   await click("Berikutnya");
   await waitText("Halaman 2 dari 2");
+  // Remove only our first test download so this file must be freshly created.
+  const { unlink } = await import("node:fs/promises");
+  await unlink(download);
+  await click("Export CSV");
+  await until(async () => (await readFile(download)).length > 0, "all-pages CSV download");
+  assert.equal((await readFile(download, "utf8")).trimEnd().split("\r\n").length, 23);
+  console.log("PASS export includes all 22 matches while UI is on page 2");
   await fill("filter-category", String(salary));
   await waitText("Tidak ada transaksi");
   await fill("filter-category", "all");
@@ -271,6 +297,25 @@ try {
 
   await fill("filter-month", "2026-10");
   await waitText("UI tiga");
+  await evaluate("window.realFetch = window.fetch; window.fetch = (...args) => String(args[0]).includes('/export/csv') ? Promise.reject(new TypeError('offline export')) : window.realFetch(...args)");
+  await click("Export CSV");
+  await waitText("Export CSV gagal");
+  assert.equal(await evaluate("document.querySelectorAll('a[download]').length"), 0);
+  await capture("mobile-export-error.png", 390, 844);
+  // Delay only the export transport to check pending state and double-click guard.
+  await evaluate("window.exportRequests = 0; window.fetch = (...args) => { if (!String(args[0]).includes('/export/csv')) return window.realFetch(...args); window.exportRequests++; return new Promise((yes,no) => setTimeout(() => window.realFetch(...args).then(yes,no),500)); }");
+  await evaluate("{ const button = [...document.querySelectorAll('button')].find(el => el.textContent.trim() === 'Coba lagi export'); button.click(); button.click(); }");
+  await waitText("Mengekspor…");
+  assert.equal(await evaluate("[...document.querySelectorAll('button')].find(el => el.textContent.trim() === 'Mengekspor…').disabled"), true);
+  await waitText("Download CSV dimulai");
+  assert.equal(await evaluate("window.exportRequests"), 1);
+  assert.equal((await text()).includes("Export CSV gagal"), false);
+  await evaluate("window.fetch = window.realFetch");
+  await fill("filter-month", "");
+  assert.equal(await evaluate("[...document.querySelectorAll('button')].find(el => el.textContent.trim() === 'Export CSV').disabled"), true);
+  await fill("filter-month", "2026-10");
+  await waitText("UI tiga");
+  console.log("PASS export error/retry, pending/double-click guard, invalid month disables export");
   await capture("desktop.png", 1366, 900);
   await click("Tambah Transaksi");
   await fill("amount_rupiah", "123456");

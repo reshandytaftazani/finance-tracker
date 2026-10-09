@@ -30,12 +30,12 @@ function assertSafeIdentifier(id: unknown): asserts id is number {
   }
 }
 
-async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function requestResponse(path: string, options: RequestInit = {}, accept = "application/json"): Promise<Response> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
-      headers: { Accept: "application/json", ...(options.method ? { "Content-Type": "application/json" } : {}) },
+      headers: { Accept: accept, ...(options.method ? { "Content-Type": "application/json" } : {}) },
     });
   } catch (error) {
     if (options.signal?.aborted) throw error;
@@ -66,6 +66,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
       : "Permintaan gagal. Coba lagi setelah memastikan backend berjalan.";
     throw new ApiError(response.status, message, errors);
   }
+  return response;
+}
+
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const response = await requestResponse(path, options);
   if (response.status === 204) return undefined as T;
   return JSON.parse(await response.text(), (key, value) => {
     if (key === "id" || key === "category_id") assertSafeIdentifier(value);
@@ -84,18 +89,32 @@ export async function fetchCategories(signal?: AbortSignal): Promise<Category[]>
   }
 }
 
-export async function fetchTransactions(filters: TransactionFilters, signal?: AbortSignal): Promise<Page<Transaction>> {
+function filterParams(filters: TransactionFilters): URLSearchParams {
   const range = monthRange(filters.month);
-  if (!range) return Promise.reject(new Error("Pilih bulan yang valid."));
+  if (!range) throw new Error("Pilih bulan yang valid.");
   const params = new URLSearchParams(range);
   if (filters.type !== "all") params.set("type", filters.type);
   if (filters.category_id !== "all") {
     assertSafeIdentifier(Number(filters.category_id));
     params.set("category_id", filters.category_id);
   }
+  return params;
+}
+
+export async function fetchTransactions(filters: TransactionFilters, signal?: AbortSignal): Promise<Page<Transaction>> {
+  const params = filterParams(filters);
   params.set("page", String(filters.page));
   params.set("page_size", "20");
   return request(`/api/v1/transactions?${params}`, { signal });
+}
+
+export async function exportTransactions(filters: TransactionFilters, signal?: AbortSignal): Promise<Blob> {
+  const params = filterParams(filters);
+  const response = await requestResponse(`/api/v1/transactions/export/csv?${params}`, { signal }, "text/csv");
+  if (response.headers.get("Content-Type")?.split(";")[0].trim().toLowerCase() !== "text/csv") {
+    throw new Error("Backend tidak mengirim CSV. Periksa backend, lalu coba lagi export.");
+  }
+  return response.blob();
 }
 
 export async function saveTransaction(payload: TransactionPayload, id?: number): Promise<Transaction> {

@@ -4,6 +4,8 @@ These tests catch missing owner predicates, partial-update data loss, incorrect
 category relations, non-exact amounts, unstable pagination, and lost commits.
 """
 
+import csv
+import io
 from datetime import date
 
 import pytest
@@ -78,6 +80,106 @@ def create_transaction(client, **changes):
     response = client.post("/api/v1/transactions", json=payload(**changes))
     assert response.status_code == 201, response.text
     return response.json()
+
+
+def exported_rows(client, params=None):
+    response = client.get("/api/v1/transactions/export/csv", params=params)
+    assert response.status_code == 200, response.text
+    assert response.headers["content-type"] == "text/csv; charset=utf-8"
+    assert response.headers["content-disposition"] == 'attachment; filename="transaksi.csv"'
+    assert response.headers["cache-control"] == "no-store"
+    return list(csv.reader(io.StringIO(response.content.decode("utf-8-sig"), newline="")))
+
+
+def test_csv_empty_has_only_header_and_does_not_export_foreign_owner(api):
+    client, _ = api
+    assert exported_rows(client) == [["tanggal", "tipe", "kategori", "nominal_rupiah", "deskripsi"]]
+
+
+def test_csv_preserves_unicode_quotes_comma_newlines_and_exact_amount(api):
+    client, _ = api
+    assert client.patch("/api/v1/categories/1", json={"name": 'Kopi, "café"\n夜'}).status_code == 200
+    create_transaction(client, amount_rupiah="9999999999999", description='Makan, "enak"\r\nBaris kedua 😀')
+    response = client.get("/api/v1/transactions/export/csv")
+    assert response.content.startswith(b"\xef\xbb\xbf")
+    assert exported_rows(client)[1:] == [["2026-10-09", "expense", 'Kopi, "café"\n夜', "9999999999999", 'Makan, "enak"\r\nBaris kedua 😀']]
+
+
+def test_csv_exports_all_pages_in_stable_order_and_omits_private_fields(api):
+    client, _ = api
+    for index in range(23):
+        create_transaction(client, description=f"Row {index}", notes="Private notes")
+    rows = exported_rows(client, {"page": 2, "page_size": 1, "owner_id": 2})
+    assert len(rows) == 24
+    assert [row[4] for row in rows[1:]] == [f"Row {index}" for index in reversed(range(23))]
+    assert all(len(row) == 5 for row in rows)
+    assert "Private notes" not in str(rows) and "Rahasia" not in str(rows)
+
+
+@pytest.mark.parametrize("params,expected", [
+    ({"start_date": "2026-10-01", "end_date": "2026-10-31"}, ["Last", "Salary", "First"]),
+    ({"start_date": "2026-10-01"}, ["After", "Last", "Salary", "First"]),
+    ({"end_date": "2026-10-01"}, ["First", "Before"]),
+    ({"type": "income"}, ["Salary"]),
+    ({"category_id": 1}, ["After", "Last", "First", "Before"]),
+    ({"start_date": "2026-10-01", "end_date": "2026-10-31", "category_id": 1, "type": "expense"}, ["Last", "First"]),
+    ({"category_id": 1, "type": "income"}, []),
+])
+def test_csv_matches_inclusive_filters(api, params, expected):
+    client, _ = api
+    for when, description in [("2026-09-30", "Before"), ("2026-10-01", "First"), ("2026-10-31", "Last"), ("2026-11-01", "After")]:
+        create_transaction(client, date=when, description=description)
+    create_transaction(client, date="2026-10-15", description="Salary", category_id=2, type="income")
+    assert [row[4] for row in exported_rows(client, params)[1:]] == expected
+    listing = client.get("/api/v1/transactions", params={**params, "page_size": 100}).json()
+    assert [row[4] for row in exported_rows(client, params)[1:]] == [item["description"] for item in listing["items"]]
+
+
+@pytest.mark.parametrize("params,status", [
+    ({"start_date": "2026-02-30"}, 422),
+    ({"end_date": "2026-10-09T00:00:00Z"}, 422),
+    ({"start_date": "2026-11-01", "end_date": "2026-10-01"}, 422),
+    ({"type": "transfer"}, 422),
+    ({"category_id": 0}, 422),
+    ({"category_id": 2**63}, 422),
+    ({"category_id": 999}, 404),
+    ({"category_id": 3}, 404),
+])
+def test_csv_invalid_and_foreign_category_filters_fail(api, params, status):
+    client, _ = api
+    response = client.get("/api/v1/transactions/export/csv", params=params)
+    assert response.status_code == status
+    assert "content-disposition" not in response.headers
+    if status == 404:
+        assert response.json()["detail"] == "Category not found"
+
+
+def test_csv_isolation_works_in_both_owner_directions(api):
+    client, _ = api
+    create_transaction(client, description="Local only")
+    app.dependency_overrides[get_current_owner_id] = lambda: 2
+    assert exported_rows(client)[1:] == [["2026-10-09", "expense", "Rahasia", "999", ""]]
+    assert client.get("/api/v1/transactions/export/csv?category_id=1").status_code == 404
+
+
+@pytest.mark.parametrize("dangerous", ["=1+1", "+SUM(1,2)", "-1+1", "@SUM(1)", "\t=1+1", "\r=1+1", "\n=1+1", "  =1+1", "\ufeff=1+1", "\x01=1+1", "＝1+1"])
+def test_csv_neutralizes_formula_prefixes_without_mutating_saved_text(api, dangerous):
+    client, engine = api
+    created = create_transaction(client, description=dangerous)
+    assert client.patch("/api/v1/categories/1", json={"name": dangerous}).status_code == 200
+    rows = exported_rows(client)
+    with Session(engine) as session:
+        transaction = session.get(Transaction, created["id"])
+        category = session.get(Category, 1)
+        assert rows[1][4] == "'" + transaction.description
+        assert rows[1][2] == "'" + category.name
+        assert transaction.description == created["description"]
+
+
+def test_csv_does_not_change_safe_text_containing_formula_characters(api):
+    client, _ = api
+    create_transaction(client, description='Email a@b, harga = 1\n+ bukan sel baru')
+    assert exported_rows(client)[1][4] == 'Email a@b, harga = 1\n+ bukan sel baru'
 
 
 def test_transaction_create_read_patch_delete_are_persistent(api):
