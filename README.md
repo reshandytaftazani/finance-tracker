@@ -15,8 +15,9 @@ Proyek sedang membangun fondasi MVP:
 - **Mode akses & autentikasi:** mode akses ditetapkan eksplisit sebagai single-owner local-only untuk MVP tanpa endpoint register/login/profile publik. Server menyelesaikan kepemilikan data secara internal via bootstrap ID `1` (`app.dependencies.get_current_owner_id`), menolak input/override ownership dari client, dan menolak akses non-local tanpa autentikasi.
 - **Migration & seed:** migration Alembic awal dan bootstrap owner/kategori tersedia melalui command eksplisit. Tidak ada transaksi demo.
 - **API CRUD:** transaksi/kategori dengan filter, pagination, PATCH parsial, dan isolasi owner. Kategori yang terpakai tidak dapat dihapus atau diubah tipenya.
-- **Halaman transaksi:** tambah/edit/hapus melalui API, filter bulan/kategori/tipe, pagination, validasi inline, konfirmasi hapus, dan loading/error/retry. Nominal dikirim sebagai string digit; perubahan memperbarui list dan menginvalidasi cache analytics. ID melebihi `Number.MAX_SAFE_INTEGER` ditolak di browser (termasuk pembacaan) untuk mencegah mutasi ke ID yang dibulatkan; dukungan penuh ID 64-bit belum tersedia di UI.
-- **Belum tersedia:** dashboard data nyata dan export CSV. Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
+- **Halaman transaksi & export CSV:** tambah/edit/hapus melalui API, filter bulan/kategori/tipe, pagination, validasi inline, konfirmasi hapus, loading/error/retry, serta export CSV aman. Nominal dikirim sebagai string digit; perubahan memperbarui list dan menginvalidasi cache analytics. ID melebihi `Number.MAX_SAFE_INTEGER` ditolak di browser (termasuk pembacaan) untuk mencegah mutasi ke ID yang dibulatkan; dukungan penuh ID 64-bit belum tersedia di UI.
+- **Dashboard keuangan:** metrik total pemasukan, total pengeluaran, dan arus kas bersih (net cash flow), pemilih periode bulan, distribusi alokasi pengeluaran per kategori, serta daftar transaksi terbaru yang terhubung langsung ke API analytics dan transaksi.
+- **Belum tersedia:** fitur budget management (Phase 5). Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
 
 ---
 
@@ -142,8 +143,7 @@ npm install
 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Akses antarmuka melalui peramban web di <http://127.0.0.1:5173>. Halaman Transaksi terhubung ke API;
-Dashboard masih placeholder hingga Phase 4. Frontend dan API harus memakai hostname yang sama
+Akses antarmuka melalui peramban web di <http://127.0.0.1:5173>. Halaman Dashboard dan Transaksi terhubung ke API. Frontend dan API harus memakai hostname yang sama
 (default `127.0.0.1`) agar request mutasi tidak ditolak proteksi cross-site. Jika memakai `localhost`,
 atur `VITE_API_BASE_URL=http://localhost:8000` sebelum menjalankan frontend dan buka melalui `localhost`.
 
@@ -175,7 +175,7 @@ dan tidak disediakan jalur restore/import CSV. Simpan export pribadi di lokasi p
 
 ## Ringkasan Bulanan (API)
 
-Task 4.1 menyediakan dua endpoint; dashboard data nyata tetap task 4.2:
+Tersedia dua endpoint analytics yang dikonsumsi langsung oleh Dashboard:
 
 ```text
 GET /api/v1/analytics/summary?month=10&year=2026

@@ -323,6 +323,16 @@ try {
   await click("Batal");
   await until(async () => await evaluate("document.activeElement.textContent.trim() === 'Tambah Transaksi'"), "focus returns to add after cancel");
   await capture("mobile-list.png", 390, 844);
+  await send("Page.navigate", { url: `${ui}/` });
+  await waitText("Dashboard Keuangan");
+  await waitText("Total Pemasukan");
+  await waitText("Total Pengeluaran");
+  await waitText("Arus Kas Bersih");
+  await waitText("Alokasi Pengeluaran");
+  await waitText("Aktivitas Transaksi Terbaru");
+  await capture("desktop-dashboard.png", 1366, 900);
+  await capture("mobile-dashboard.png", 390, 844);
+  console.log("PASS dashboard renders summary metrics, category breakdown and recent transactions");
   assert.deepEqual(consoleErrors, []);
   console.log("PASS desktop/mobile no page overflow, captures, no uncaught browser errors");
   console.log(`Browser tests passed. Artifacts: ${artifacts}`);

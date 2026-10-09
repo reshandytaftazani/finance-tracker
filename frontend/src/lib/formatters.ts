@@ -1,17 +1,40 @@
 /**
  * Format nominal integer rupiah menjadi string tampilan standar IDR.
- * Contoh: 150000 -> "Rp 150.000"
+ * Contoh: 150000 -> "Rp 150.000", "-500" -> "-Rp 500"
  */
-export function formatRupiah(amount: number | string): string {
-  const numericAmount = typeof amount === "string" ? parseInt(amount, 10) : amount;
-  if (isNaN(numericAmount)) {
-    return "Rp 0";
+export function formatRupiah(amount: number | string | bigint): string {
+  if (typeof amount === "bigint") {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(amount);
   }
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    maximumFractionDigits: 0,
-  }).format(numericAmount);
+  if (typeof amount === "string") {
+    const trimmed = amount.trim();
+    if (!/^-?[0-9]+$/.test(trimmed)) {
+      return "Rp 0";
+    }
+    try {
+      const b = BigInt(trimmed);
+      return new Intl.NumberFormat("id-ID", {
+        style: "currency",
+        currency: "IDR",
+        maximumFractionDigits: 0,
+      }).format(b);
+    } catch {
+      return "Rp 0";
+    }
+  }
+  if (typeof amount === "number") {
+    if (isNaN(amount) || !isFinite(amount)) return "Rp 0";
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  }
+  return "Rp 0";
 }
 
 /**
