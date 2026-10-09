@@ -12,6 +12,7 @@ Proyek sedang membangun fondasi MVP:
 - **Backend:** FastAPI, database SQLite dengan foreign key aktif, synchronous session per request, proteksi host dan origin pada request mutasi, health endpoint, dan pengujian otomatis via pytest.
 - **Frontend:** React, TypeScript, dan Vite dengan type-checking, linter, serta konfigurasi build produksi.
 - **Model & validasi:** model Owner/Category/Transaction dengan constraint ownership, nominal rupiah integer, normalisasi nama, timestamp UTC, dan schema create/update/read. API nominal menggunakan string digit; client tidak dapat mengirim `owner_id` atau `normalized_name`.
+- **Mode akses & autentikasi:** mode akses ditetapkan eksplisit sebagai single-owner local-only untuk MVP tanpa endpoint register/login/profile publik. Server menyelesaikan kepemilikan data secara internal via bootstrap ID `1` (`app.dependencies.get_current_owner_id`), menolak input/override ownership dari client, dan menolak akses non-local tanpa autentikasi.
 - **Migration & seed:** migration Alembic awal dan bootstrap owner/kategori tersedia melalui command eksplisit. Tidak ada transaksi demo.
 - **Belum tersedia:** endpoint CRUD, dashboard data nyata, dan export. Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
 
@@ -143,6 +144,7 @@ finance-tracker/
 │   │   ├── models.py        # Model dan constraint domain
 │   │   ├── schemas.py       # Schema API create/update/read
 │   │   ├── validation.py    # Validasi nominal, tanggal, dan teks
+│   │   ├── dependencies.py  # Resolusi kepemilikan data server-side
 │   │   └── security.py      # Proteksi Host dan Origin
 │   ├── alembic/             # Environment dan revision migration
 │   ├── alembic.ini          # Konfigurasi Alembic

@@ -5,10 +5,10 @@ from sqlmodel import Session
 
 from app.config import get_settings
 from app.db import engine
+from app.dependencies import LOCAL_OWNER_ID
 from app.models import Category, Owner, TransactionType
 from app.validation import normalize_category_name
 
-LOCAL_OWNER_ID = 1
 DEFAULT_CATEGORIES: tuple[tuple[str, TransactionType], ...] = (
     ("Gaji", "income"),
     ("Makanan", "expense"),
