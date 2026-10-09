@@ -15,7 +15,8 @@ Proyek sedang membangun fondasi MVP:
 - **Mode akses & autentikasi:** mode akses ditetapkan eksplisit sebagai single-owner local-only untuk MVP tanpa endpoint register/login/profile publik. Server menyelesaikan kepemilikan data secara internal via bootstrap ID `1` (`app.dependencies.get_current_owner_id`), menolak input/override ownership dari client, dan menolak akses non-local tanpa autentikasi.
 - **Migration & seed:** migration Alembic awal dan bootstrap owner/kategori tersedia melalui command eksplisit. Tidak ada transaksi demo.
 - **API CRUD:** transaksi/kategori dengan filter, pagination, PATCH parsial, dan isolasi owner. Kategori yang terpakai tidak dapat dihapus atau diubah tipenya.
-- **Belum tersedia:** halaman transaksi terhubung API, dashboard data nyata, dan export CSV. Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
+- **Halaman transaksi:** tambah/edit/hapus melalui API, filter bulan/kategori/tipe, pagination, validasi inline, konfirmasi hapus, dan loading/error/retry. Nominal dikirim sebagai string digit; perubahan memperbarui list dan menginvalidasi cache analytics. ID melebihi `Number.MAX_SAFE_INTEGER` ditolak di browser (termasuk pembacaan) untuk mencegah mutasi ke ID yang dibulatkan; dukungan penuh ID 64-bit belum tersedia di UI.
+- **Belum tersedia:** dashboard data nyata dan export CSV. Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
 
 ---
 
@@ -35,7 +36,7 @@ Proyek sedang membangun fondasi MVP:
 
 ## Panduan Menjalankan Aplikasi
 
-Prasyarat lingkungan: Python 3.12+ dan Node.js LTS beserta npm. Perintah berikut menggunakan PowerShell.
+Prasyarat lingkungan: Python 3.12+ dan Node.js 24 LTS beserta npm. Perintah berikut menggunakan PowerShell.
 
 ### 1. Menjalankan Backend
 
@@ -141,7 +142,10 @@ npm install
 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Akses antarmuka melalui peramban web di <http://localhost:5173>. Frontend masih berupa shell UI; integrasi form dan daftar transaksi dengan API dikerjakan pada task 3.2.
+Akses antarmuka melalui peramban web di <http://127.0.0.1:5173>. Halaman Transaksi terhubung ke API;
+Dashboard masih placeholder hingga Phase 4. Frontend dan API harus memakai hostname yang sama
+(default `127.0.0.1`) agar request mutasi tidak ditolak proteksi cross-site. Jika memakai `localhost`,
+atur `VITE_API_BASE_URL=http://localhost:8000` sebelum menjalankan frontend dan buka melalui `localhost`.
 
 ---
 
@@ -161,10 +165,33 @@ python -m ruff check .
 Dari direktori `frontend/`:
 
 ```powershell
+npm test
 npm run lint
 npm run type-check
 npm run build
 ```
+
+`npm test` memakai test runner bawaan Node.js 24 (tanpa dependency tambahan) untuk validasi tanggal/nominal,
+payload API, pagination kategori, error HTTP, dan invalidasi cache transaksi/analytics. Query dashboard
+pada Phase 4 harus memakai prefix `['analytics']` agar ikut diperbarui setelah mutasi.
+
+Tes browser opsional memakai Chrome/Chromium yang sudah terpasang, backend environment yang sama,
+dan SQLite sementara hasil migration/seed, **bukan database pribadi**:
+
+```powershell
+# Dari frontend/. Tidak perlu menjalankan server app secara manual.
+$env:BACKEND_PYTHON = (Resolve-Path ..\backend\.venv\Scripts\python.exe).Path
+npm run test:browser
+```
+
+Jika Chrome tidak ada di lokasi default, set `CHROME_PATH` ke executable Chrome/Chromium.
+`BACKEND_PYTHON` juga dapat menunjuk environment backend di lokasi lain (misalnya worktree).
+Runner menyalakan server loopback test (default API `18032`, frontend `15132`), lalu menghentikannya.
+Port dapat diubah melalui `TEST_API_PORT`/`TEST_UI_PORT`; pastikan port tersebut kosong.
+Artifact/screenshot dan DB fixture tersimpan di direktori temporary baru yang dilaporkan runner;
+set `TEST_ARTIFACTS_DIR` untuk memilih direktori induknya. Jangan commit artifact/database tersebut.
+Flow yang diuji: tambah 3/hapus 1, edit, filter/pagination, reload, error/retry, double-submit,
+serta viewport desktop/mobile. Screenshot emulasi bukan pengujian perangkat fisik atau screen reader.
 
 ---
 

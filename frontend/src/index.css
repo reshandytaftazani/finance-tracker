@@ -32,3 +32,83 @@
     -webkit-font-smoothing: antialiased;
   }
 }
+
+@layer components {
+  .transaction-field {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.375rem;
+  }
+
+  .transaction-field label {
+    color: var(--foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .transaction-control {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: var(--card);
+    color: var(--foreground);
+    font-size: 1rem;
+    caret-color: var(--accent);
+  }
+
+  .transaction-control[aria-invalid="true"] {
+    border-color: #b91c1c;
+  }
+
+  .transaction-control:focus-visible,
+  .transaction-button:focus-visible,
+  [aria-label="Daftar transaksi"] [role="region"]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .transaction-field-error {
+    color: #b91c1c;
+    font-size: 0.875rem;
+  }
+
+  .transaction-field-error:empty { display: none; }
+
+  .transaction-button {
+    min-height: 2.75rem;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: 0.375rem;
+    background: var(--card);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .transaction-button:hover:not(:disabled) { background: var(--muted-bg); }
+  .transaction-primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+  .transaction-primary:hover:not(:disabled) { background: #1e293b; }
+  .transaction-danger { background: #b91c1c; color: white; border-color: #b91c1c; }
+  .transaction-danger:hover:not(:disabled) { background: #991b1b; }
+  .transaction-button:disabled, .transaction-control:disabled { opacity: 0.55; cursor: not-allowed; }
+
+  .transaction-dialog {
+    margin: auto;
+    width: min(30rem, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--card);
+    color: var(--foreground);
+  }
+
+  .transaction-dialog::backdrop { background: rgb(15 23 42 / 45%); }
+  .transaction-control::selection { background: #dbeafe; color: var(--foreground); }
+}
