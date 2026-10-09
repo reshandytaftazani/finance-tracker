@@ -429,7 +429,8 @@ try {
     await until(async () => await evaluate("document.querySelector('[aria-label=\"Alokasi Pengeluaran\"]').innerText.replace(/\\s+/g, ' ').includes('Rp 102')"), "breakdown updates after create");
     await follow("/transactions");
     await waitText("Dashboard mutation");
-    await evaluate("[...document.querySelectorAll('tbody tr')].find(row => row.innerText.includes('Dashboard mutation')).querySelector('button').click()");
+    await until(async () => await evaluate("Boolean(document.querySelector('button[aria-label=\"Edit transaksi Dashboard mutation\"]'))"), "created dashboard transaction is editable");
+    await evaluate("document.querySelector('button[aria-label=\"Edit transaksi Dashboard mutation\"]').click()");
     await fill("amount_rupiah", "120");
     await click("Simpan perubahan");
     await until(async () => !await evaluate("Boolean(document.querySelector('[name=date]'))"), "dashboard edit closes");
@@ -445,7 +446,8 @@ try {
     await until(async () => await evaluate("document.querySelector('[aria-label=\"Aktivitas Transaksi Terbaru\"]').innerText.replace(/\\s+/g, ' ').includes('Rp 120')"), "recent amount updates after edit");
     await follow("/transactions");
     await waitText("Dashboard mutation");
-    await evaluate("[...document.querySelectorAll('tbody tr')].find(row => row.innerText.includes('Dashboard mutation')).querySelectorAll('button')[1].click()");
+    await until(async () => await evaluate("Boolean(document.querySelector('button[aria-label=\"Hapus transaksi Dashboard mutation\"]'))"), "edited dashboard transaction is deletable");
+    await evaluate("document.querySelector('button[aria-label=\"Hapus transaksi Dashboard mutation\"]').click()");
     await click("Hapus transaksi");
     await until(async () => !await evaluate("Boolean(document.querySelector('dialog'))"), "dashboard delete closes");
     await follow("/");
