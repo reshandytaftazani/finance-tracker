@@ -11,7 +11,7 @@ Dokumen perencanaan dan pelacakan implementasi tersimpan di [PLANNING.local.md](
 Proyek saat ini berada pada tahap fondasi MVP:
 - **Backend:** FastAPI, database SQLite dengan foreign key aktif, synchronous session per request, proteksi host dan origin pada request mutasi, health endpoint, dan pengujian otomatis via pytest.
 - **Frontend:** React, TypeScript, dan Vite dengan type-checking, linter, serta konfigurasi build produksi.
-- **Pelacakan Task:** Task 0.1 dan Task 0.2 telah selesai. Rincian tahapan lanjutan tercatat di [PLANNING.local.md](PLANNING.local.md).
+- **Pelacakan Task:** Seluruh task Phase 0 (Task 0.1 s.d. 0.4) telah selesai. Rincian tahapan lanjutan tercatat di [PLANNING.local.md](PLANNING.local.md).
 
 ---
 

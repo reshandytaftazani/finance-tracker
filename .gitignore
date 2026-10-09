@@ -22,6 +22,10 @@ ml/notebooks/.ipynb_checkpoints/
 graphify-out/
 
 backups/
+backend/backups/
+exports/
+backend/exports/
+*.bak
 *.csv
 *.sqlite3-wal
 *.sqlite3-shm
