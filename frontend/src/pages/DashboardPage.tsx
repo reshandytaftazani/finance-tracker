@@ -28,11 +28,13 @@ export const DashboardPage: React.FC = () => {
   const parsedMonth = validMonth ? Number(month.slice(5)) : 0;
   const parsedYear = validMonth ? Number(month.slice(0, 4)) : 0;
 
+  const periodDate = new Date(0);
+  periodDate.setFullYear(parsedYear, parsedMonth - 1, 1);
   const periodLabel = validMonth
     ? new Intl.DateTimeFormat("id-ID", {
         month: "long",
         year: "numeric",
-      }).format(new Date(parsedYear, parsedMonth - 1, 1))
+      }).format(periodDate)
     : month;
 
   // React Query hooks with shared ['analytics'] prefix
@@ -84,14 +86,13 @@ export const DashboardPage: React.FC = () => {
       ? { label: "Defisit", style: "bg-rose-50 text-rose-700 border-rose-200" }
       : { label: "Seimbang", style: "bg-slate-50 text-slate-700 border-slate-200" };
 
-  let totalExpenseBigInt = 0n;
-  if (summaryQuery.data?.expense) {
-    try {
-      totalExpenseBigInt = BigInt(summaryQuery.data.expense);
-    } catch {
-      totalExpenseBigInt = 0n;
-    }
-  }
+  // Use one response for both the numerator and denominator. Summary may
+  // still be loading, fail, or reflect a different snapshot after a mutation.
+  const totalExpenseBigInt = (breakdownQuery.data?.items ?? []).reduce(
+    (total, item) => total + BigInt(item.expense),
+    0n
+  );
+  const summaryUnavailable = !validMonth || summaryQuery.isError || !summaryQuery.data;
 
   const defaultMonth = jakartaToday().slice(0, 7);
 
@@ -202,6 +203,8 @@ export const DashboardPage: React.FC = () => {
           <div className="mt-3">
             {summaryQuery.isPending && validMonth ? (
               <div className="h-8 w-32 bg-slate-100 animate-pulse rounded my-1" />
+            ) : summaryUnavailable ? (
+              <p className="text-sm text-slate-600">Data tidak tersedia</p>
             ) : (
               <div className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
                 {formatRupiah(summaryQuery.data?.income ?? "0")}
@@ -224,6 +227,8 @@ export const DashboardPage: React.FC = () => {
           <div className="mt-3">
             {summaryQuery.isPending && validMonth ? (
               <div className="h-8 w-32 bg-slate-100 animate-pulse rounded my-1" />
+            ) : summaryUnavailable ? (
+              <p className="text-sm text-slate-600">Data tidak tersedia</p>
             ) : (
               <div className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
                 {formatRupiah(summaryQuery.data?.expense ?? "0")}
@@ -246,6 +251,8 @@ export const DashboardPage: React.FC = () => {
           <div className="mt-3">
             {summaryQuery.isPending && validMonth ? (
               <div className="h-8 w-32 bg-slate-100 animate-pulse rounded my-1" />
+            ) : summaryUnavailable ? (
+              <p className="text-sm text-slate-600">Data tidak tersedia</p>
             ) : (
               <div className="flex items-baseline gap-2">
                 <span
@@ -297,6 +304,19 @@ export const DashboardPage: React.FC = () => {
               </Link>
             </div>
 
+            {categoriesQuery.isError && (
+              <div role="alert" className="mb-3 text-sm text-red-800">
+                <p>Kategori gagal dimuat. Nama kategori sementara ditampilkan sebagai ID.</p>
+                <button
+                  type="button"
+                  className="transaction-button mt-2 text-xs py-1 px-3"
+                  disabled={categoriesQuery.isFetching}
+                  onClick={() => void categoriesQuery.refetch()}
+                >
+                  Coba lagi kategori
+                </button>
+              </div>
+            )}
             {recentQuery.isPending && validMonth ? (
               <div className="space-y-3 py-2">
                 {[1, 2, 3].map((i) => (

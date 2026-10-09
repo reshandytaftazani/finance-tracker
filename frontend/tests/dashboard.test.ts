@@ -131,3 +131,17 @@ test("fetchRecentTransactions fetches first page limited to 5 items with date ra
   assert.equal(transactions.length, 1);
   assert.equal(transactions[0].description, "Makan siang");
 });
+
+test("recent transactions preserve four-digit years below 1000", async (t) => {
+  const urls: string[] = [];
+  t.mock.method(globalThis, "fetch", async (url) => {
+    urls.push(String(url));
+    return Response.json({ items: [], total: 0, page: 1, page_size: 5 });
+  });
+  for (const year of [1, 99, 999]) {
+    assert.deepEqual(await fetchRecentTransactions(1, year), []);
+  }
+  assert.deepEqual(urls.map((url) => new URL(url).searchParams.get("start_date")), [
+    "0001-01-01", "0099-01-01", "0999-01-01",
+  ]);
+});

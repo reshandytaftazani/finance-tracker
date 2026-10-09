@@ -281,7 +281,7 @@ try {
   await until(async () => !(await evaluate("Boolean(document.querySelector('dialog'))")), "delete retry closes dialog");
   console.log("PASS delete error retains row and confirmation; retry succeeds");
 
-  await send("Page.addScriptToEvaluateOnNewDocument", { source: "window.realFetch = window.fetch; window.fetch = (...args) => String(args[0]).includes('/api/v1/categories') ? Promise.reject(new TypeError('offline categories')) : new Promise((yes,no) => setTimeout(() => window.realFetch(...args).then(yes,no),400));" });
+  const categoryFault = await send("Page.addScriptToEvaluateOnNewDocument", { source: "window.realFetch = window.fetch; window.fetch = (...args) => String(args[0]).includes('/api/v1/categories') ? Promise.reject(new TypeError('offline categories')) : new Promise((yes,no) => setTimeout(() => window.realFetch(...args).then(yes,no),400));" });
   await send("Page.reload");
   await waitText("Memuat transaksi");
   await waitText("Kategori gagal dimuat");
@@ -323,6 +323,7 @@ try {
   await click("Batal");
   await until(async () => await evaluate("document.activeElement.textContent.trim() === 'Tambah Transaksi'"), "focus returns to add after cancel");
   await capture("mobile-list.png", 390, 844);
+  await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: categoryFault.identifier });
   await send("Page.navigate", { url: `${ui}/` });
   await waitText("Dashboard Keuangan");
   await waitText("Total Pemasukan");
@@ -330,6 +331,129 @@ try {
   await waitText("Arus Kas Bersih");
   await waitText("Alokasi Pengeluaran");
   await waitText("Aktivitas Transaksi Terbaru");
+  const dashboardFailures = [];
+  async function dashboardCheck(name, check) {
+    try { await check(); console.log(`PASS ${name}`); }
+    catch (error) { dashboardFailures.push(`${name}: ${error.message}`); console.error(`FAIL ${name}: ${error.message}`); }
+  }
+  const metricTexts = () => evaluate("[...document.querySelectorAll('section[aria-label=\"Ringkasan Arus Kas\"] article')].map(el => el.innerText.replace(/\\s+/g, ' '))");
+  const setPeriod = (value) => evaluate(`{ const el = document.querySelector('#dashboard-period'); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event('input', { bubbles: true })); }`);
+  const follow = (href) => evaluate(`document.querySelector('a[href="${href}"]').click()`);
+  async function expectMetrics(income, expense, net) {
+    await until(async () => {
+      const cards = await metricTexts();
+      return cards[0]?.includes(income) && cards[1]?.includes(expense) && cards[2]?.includes(net);
+    }, `dashboard metrics ${income}/${expense}/${net}`);
+  }
+  const transport = categories.find((item) => item.name === "Transport").id;
+  for (const item of [
+    { category_id: salary, type: "income", amount_rupiah: "1000", date: "2026-07-01", description: "July income" },
+    { category_id: transport, type: "expense", amount_rupiah: "100", date: "2026-07-02", description: "July transport" },
+    { category_id: food, type: "expense", amount_rupiah: "300", date: "2026-07-03", description: "July food" },
+    { category_id: salary, type: "income", amount_rupiah: "50", date: "2026-08-01", description: "August income" },
+  ]) await apiRequest("/transactions", "POST", item);
+
+  // These assertions catch incorrect widget values, period leakage and ordering.
+  await dashboardCheck("dashboard period switch updates all widgets", async () => {
+    await setPeriod("2026-07");
+    await expectMetrics("Rp 1.000", "Rp 400", "Rp 600");
+    await waitText("75.0%");
+    assert.equal(await evaluate("document.querySelector('[aria-label=\"Aktivitas Transaksi Terbaru\"]').innerText.includes('July food')"), true);
+    const recentText = await evaluate("document.querySelector('[aria-label=\"Aktivitas Transaksi Terbaru\"]').innerText");
+    assert.ok(recentText.indexOf("July food") < recentText.indexOf("July transport"));
+    assert.ok(recentText.indexOf("July transport") < recentText.indexOf("July income"));
+    await setPeriod("2026-08");
+    await expectMetrics("Rp 50", "Rp 0", "Rp 50");
+    await waitText("August income");
+    assert.equal((await text()).includes("July food"), false);
+    await waitText("Belum ada transaksi pengeluaran");
+  });
+
+  const summaryFault = await send("Page.addScriptToEvaluateOnNewDocument", { source: "window.realFetch = window.fetch; window.fetch = (...args) => String(args[0]).includes('/analytics/summary') ? Promise.reject(new TypeError('offline summary')) : window.realFetch(...args);" });
+  await send("Page.navigate", { url: `${ui}/` });
+  await waitText("Dashboard Keuangan");
+  await setPeriod("2026-07");
+  await waitText("Gagal memuat data dashboard");
+  await dashboardCheck("initial summary failure never displays zero totals", async () => {
+    const cards = await metricTexts();
+    assert.ok(cards.every((card) => card.includes("Data tidak tersedia")), JSON.stringify(cards));
+    assert.ok(cards.every((card) => !card.includes("Rp ")));
+  });
+  await dashboardCheck("breakdown percentages remain correct without summary", async () => {
+    await waitText("75.0%");
+    assert.deepEqual(await evaluate("[...document.querySelectorAll('[role=progressbar]')].map(el => el.getAttribute('aria-valuenow'))"), ["75", "25"]);
+  });
+  await evaluate("window.fetch = window.realFetch");
+  await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: summaryFault.identifier });
+  await click("Coba lagi");
+  await expectMetrics("Rp 1.000", "Rp 400", "Rp 600");
+
+  const dashboardCategoryFault = await send("Page.addScriptToEvaluateOnNewDocument", { source: "window.realFetch = window.fetch; window.fetch = (...args) => String(args[0]).includes('/categories') ? Promise.reject(new TypeError('offline categories')) : window.realFetch(...args);" });
+  await send("Page.reload");
+  await waitText("Kategori #");
+  await dashboardCheck("dashboard categories expose failure and retry", async () => {
+    await waitText("Kategori gagal dimuat");
+    await evaluate("window.fetch = window.realFetch");
+    await click("Coba lagi kategori");
+    await until(async () => !(await text()).includes("Kategori #"), "category labels recover");
+    assert.ok((await text()).includes("Makanan"));
+  });
+  await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: dashboardCategoryFault.identifier });
+  await evaluate("window.fetch = window.realFetch");
+  await dashboardCheck("dashboard supports year 0001 without rewriting it to 1901", async () => {
+    await setPeriod("0001-01");
+    await expectMetrics("Rp 0", "Rp 0", "Rp 0");
+    await waitText("Belum ada transaksi di bulan ini");
+    assert.ok((await text()).includes("Januari 1"));
+    assert.equal((await text()).includes("1901"), false);
+    assert.equal((await text()).includes("Gagal memuat"), false);
+  });
+
+  // Real SPA navigation keeps the QueryClient cache alive across mutations.
+  await send("Page.navigate", { url: `${ui}/` });
+  await waitText("Dashboard Keuangan");
+  await expectMetrics("Rp 0", "Rp 22", "-Rp 22");
+  await dashboardCheck("create/edit/delete refresh cached dashboard widgets", async () => {
+    await follow("/transactions");
+    await waitText("Tambah Transaksi");
+    await click("Tambah Transaksi");
+    await fill("date", "2026-10-09");
+    await fill("category_id", String(food));
+    await fill("amount_rupiah", "80");
+    await fill("description", "Dashboard mutation");
+    await click("Simpan transaksi");
+    await until(async () => !await evaluate("Boolean(document.querySelector('[name=date]'))"), "dashboard create closes");
+    await follow("/");
+    await expectMetrics("Rp 0", "Rp 102", "-Rp 102");
+    await waitText("Dashboard mutation");
+    await until(async () => await evaluate("document.querySelector('[aria-label=\"Alokasi Pengeluaran\"]').innerText.replace(/\\s+/g, ' ').includes('Rp 102')"), "breakdown updates after create");
+    await follow("/transactions");
+    await waitText("Dashboard mutation");
+    await evaluate("[...document.querySelectorAll('tbody tr')].find(row => row.innerText.includes('Dashboard mutation')).querySelector('button').click()");
+    await fill("amount_rupiah", "120");
+    await click("Simpan perubahan");
+    await until(async () => !await evaluate("Boolean(document.querySelector('[name=date]'))"), "dashboard edit closes");
+    await evaluate("window.realFetch = window.fetch; window.fetch = (...args) => String(args[0]).includes('/analytics/summary') ? Promise.reject(new TypeError('offline refetch')) : window.realFetch(...args)");
+    await follow("/");
+    await waitText("Gagal memuat data dashboard");
+    const failedCards = await metricTexts();
+    assert.ok(failedCards.every((card) => card.includes("Data tidak tersedia") && !card.includes("Rp ")), "failed refetch must not present cached totals as current");
+    await until(async () => await evaluate("document.querySelector('[aria-label=\"Alokasi Pengeluaran\"]').innerText.replace(/\\s+/g, ' ').includes('Rp 142')"), "breakdown remains usable during summary failure");
+    await evaluate("window.fetch = window.realFetch");
+    await click("Coba lagi");
+    await expectMetrics("Rp 0", "Rp 142", "-Rp 142");
+    await until(async () => await evaluate("document.querySelector('[aria-label=\"Aktivitas Transaksi Terbaru\"]').innerText.replace(/\\s+/g, ' ').includes('Rp 120')"), "recent amount updates after edit");
+    await follow("/transactions");
+    await waitText("Dashboard mutation");
+    await evaluate("[...document.querySelectorAll('tbody tr')].find(row => row.innerText.includes('Dashboard mutation')).querySelectorAll('button')[1].click()");
+    await click("Hapus transaksi");
+    await until(async () => !await evaluate("Boolean(document.querySelector('dialog'))"), "dashboard delete closes");
+    await follow("/");
+    await expectMetrics("Rp 0", "Rp 22", "-Rp 22");
+    await until(async () => !(await text()).includes("Dashboard mutation"), "recent row removed after delete");
+  });
+  assert.deepEqual(dashboardFailures, []);
+  await evaluate("window.scrollTo(0, 0)");
   await capture("desktop-dashboard.png", 1366, 900);
   await capture("mobile-dashboard.png", 390, 844);
   console.log("PASS dashboard renders summary metrics, category breakdown and recent transactions");

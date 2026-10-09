@@ -106,7 +106,7 @@ export async function fetchRecentTransactions(
 ): Promise<Transaction[]> {
   validatePeriod(month, year);
   const padMonth = String(month).padStart(2, "0");
-  const range = monthRange(`${year}-${padMonth}`);
+  const range = monthRange(`${String(year).padStart(4, "0")}-${padMonth}`);
   if (!range) throw new Error("Pilih periode bulan yang valid.");
 
   const params = new URLSearchParams({
@@ -118,4 +118,3 @@ export async function fetchRecentTransactions(
   const result = await request<Page<Transaction>>(`/api/v1/transactions?${params}`, { signal });
   return result.items;
 }
-
