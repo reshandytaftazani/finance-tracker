@@ -149,3 +149,39 @@ class TransactionPage(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+# Aggregates can exceed both the per-transaction limit and int64. Serialize
+# exact Python integers as strings so browser clients never round money.
+AggregateAmount = Annotated[
+    int,
+    Field(strict=True, ge=0),
+    PlainSerializer(str, return_type=str, when_used="json"),
+    WithJsonSchema({"type": "string", "pattern": "^[0-9]+$"}, mode="serialization"),
+]
+NetCashFlow = Annotated[
+    int,
+    Field(strict=True),
+    PlainSerializer(str, return_type=str, when_used="json"),
+    WithJsonSchema({"type": "string", "pattern": "^-?[0-9]+$"}, mode="serialization"),
+]
+
+
+class AnalyticsSummary(BaseModel):
+    month: int = Field(ge=1, le=12)
+    year: int = Field(ge=1, le=9999)
+    income: AggregateAmount
+    expense: AggregateAmount
+    net_cash_flow: NetCashFlow
+
+
+class CategoryExpense(BaseModel):
+    category_id: int
+    category_name: str
+    expense: AggregateAmount
+
+
+class AnalyticsByCategory(BaseModel):
+    month: int = Field(ge=1, le=12)
+    year: int = Field(ge=1, le=9999)
+    items: list[CategoryExpense]

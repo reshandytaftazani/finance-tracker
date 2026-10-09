@@ -173,6 +173,49 @@ dan tidak disediakan jalur restore/import CSV. Simpan export pribadi di lokasi p
 
 ---
 
+## Ringkasan Bulanan (API)
+
+Task 4.1 menyediakan dua endpoint; dashboard data nyata tetap task 4.2:
+
+```text
+GET /api/v1/analytics/summary?month=10&year=2026
+GET /api/v1/analytics/by-category?month=10&year=2026
+```
+
+Keduanya mewajibkan `month` (1–12) dan `year` (1–9999), memakai tanggal kalender
+transaksi dari awal sampai akhir bulan, serta owner yang ditentukan server.
+Periode hilang/tidak valid menghasilkan 422. Pilih bulan/tahun yang sama untuk
+semua widget; daftar transaksi terbaru dapat memakai filter `start_date`/`end_date`
+bulan yang sama pada endpoint transaksi yang sudah tersedia.
+
+Contoh response summary:
+
+```json
+{"month":10,"year":2026,"income":"1000","expense":"700","net_cash_flow":"300"}
+```
+
+`net_cash_flow` adalah pemasukan dikurangi pengeluaran, **bukan saldo rekening**,
+dan dapat negatif. Breakdown hanya memuat kategori expense dengan transaksi
+pada periode tersebut, diurutkan total terbesar lalu ID kategori:
+
+```json
+{"month":10,"year":2026,"items":[{"category_id":3,"category_name":"Transport","expense":"400"},{"category_id":1,"category_name":"Makanan","expense":"300"}]}
+```
+
+Nominal response selalu **string rupiah utuh**, termasuk nol; total tidak dibatasi
+maksimum nominal per transaksi. Penjumlahan memakai integer Python, bukan float
+atau SQLite `SUM`, agar tetap exact saat total melebihi integer 64-bit. Client
+jangan mengonversi total menjadi JavaScript `Number` tanpa pemeriksaan presisi.
+Untuk MVP, setiap request membaca baris sesuai owner/periode (tanpa cache);
+dataset besar memerlukan evaluasi performa sebelum mengganti strategi agregasi.
+
+Bulan kosong menghasilkan ketiga total `"0"` dan breakdown `items: []`.
+Kegagalan database/API tetap error, **bukan** total nol. Mutasi transaksi dan rename
+kategori langsung tercermin pada request berikutnya. Tidak ada perbandingan persen
+atau tren pada endpoint ini; jangan menampilkan nol baseline sebagai infinity.
+
+---
+
 ## Pengujian dan Verifikasi
 
 ### Backend
@@ -232,7 +275,7 @@ finance-tracker/
 │   │   ├── main.py          # Inisialisasi aplikasi FastAPI dan middleware
 │   │   ├── models.py        # Model dan constraint domain
 │   │   ├── schemas.py       # Schema API create/update/read
-│   │   ├── services/export.py # Proteksi teks CSV untuk spreadsheet
+│   │   ├── services/        # Agregasi exact bulanan dan proteksi teks CSV
 │   │   ├── validation.py    # Validasi nominal, tanggal, dan teks
 │   │   ├── dependencies.py  # Resolusi kepemilikan data server-side
 │   │   └── security.py      # Proteksi Host dan Origin
