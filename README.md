@@ -1,17 +1,19 @@
 # Personal Finance Tracker
 
-Aplikasi pencatatan keuangan pribadi untuk satu pemilik dengan Bahasa Indonesia dan mata uang Rupiah (IDR). Dirancang untuk penggunaan lokal di komputer pribadi.
+Sebuah aplikasi pencatatan keuangan pribadi untuk satu pemilik, dirancang untuk penggunaan lokal pada satu komputer pribadi. Antarmuka menggunakan Bahasa Indonesia dan mata uang Rupiah (IDR).
 
-Dokumen perencanaan dan pelacakan implementasi tersimpan di [PLANNING.local.md](PLANNING.local.md).
+Roadmap dan catatan task tersimpan di `PLANNING.local.md` pada salinan lokal dan sengaja tidak disertakan di repository.
 
 ---
 
 ## Status Proyek
 
-Proyek saat ini berada pada tahap fondasi MVP:
+Proyek sedang membangun fondasi MVP:
 - **Backend:** FastAPI, database SQLite dengan foreign key aktif, synchronous session per request, proteksi host dan origin pada request mutasi, health endpoint, dan pengujian otomatis via pytest.
 - **Frontend:** React, TypeScript, dan Vite dengan type-checking, linter, serta konfigurasi build produksi.
-- **Pelacakan Task:** Seluruh task Phase 0 (Task 0.1 s.d. 0.4) telah selesai. Rincian tahapan lanjutan tercatat di [PLANNING.local.md](PLANNING.local.md).
+- **Model & validasi:** model Owner/Category/Transaction dengan constraint ownership, nominal rupiah integer, normalisasi nama, timestamp UTC, dan schema create/update/read. API nominal menggunakan string digit; client tidak dapat mengirim `owner_id` atau `normalized_name`.
+- **Migration & seed:** migration Alembic awal dan bootstrap owner/kategori tersedia melalui command eksplisit. Tidak ada transaksi demo.
+- **Belum tersedia:** endpoint CRUD, dashboard data nyata, dan export. Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
 
 ---
 
@@ -49,6 +51,10 @@ python -m pip install -r requirements.txt
 # Salin konfigurasi environment default jika belum ada
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 
+# Buat/update schema, lalu bootstrap owner lokal dan kategori awal
+python -m scripts.migrate
+python -m scripts.seed
+
 # Jalankan server API
 python -m app
 ```
@@ -56,6 +62,32 @@ python -m app
 - Endpoint Health: <http://127.0.0.1:8000/health>
 - Dokumentasi API (Swagger UI): <http://127.0.0.1:8000/docs>
 - File basis data: `backend/data/finance.db`
+
+#### Migration dan bootstrap lokal
+
+Jalankan command dari `backend/`, dengan `.venv` aktif dan **backend dihentikan**.
+URL database mengikuti `APP_DATABASE_URL` / `.env`, sama dengan aplikasi. Untuk menguji pada salinan,
+ubah `APP_DATABASE_URL` di terminal tersebut ke path SQLite salinan, bukan DB pribadi.
+
+- `python -m scripts.migrate` menerapkan revision Alembic `0001_initial`/head. Bila ada upgrade tertunda
+  dan database berisi data, command membuat snapshot melalui SQLite backup API di `backend/backups/`,
+  lalu memeriksa integritasnya. Backup gagal → migration dibatalkan. File lama tidak ditimpa.
+- `python -m scripts.seed` membuat owner lokal ID `1` beserta Gaji, Makanan, Transport, dan Hiburan
+  dalam satu transaksi. Hanya untuk `APP_ENV=local`; owner yang sudah ada tidak diubah atau di-seed ulang,
+  termasuk bila semua kategorinya sudah dihapus. Tidak ada transaksi dummy.
+- `python -m alembic current` menampilkan revision; `python -m alembic check` memeriksa perbedaan model/schema.
+  History migration terpisah dari model aplikasi; `create_all()` hanya dipakai fixture tes.
+
+SQLite FK tetap aktif; migration DDL dan pencatatan revision memakai transaksi eksplisit agar kegagalan
+tidak menyisakan schema setengah jadi. Schema kategori/transaksi lama yang belum tercatat di Alembic
+ditolak tanpa diganti: periksa salinan dan buat migration backfill sesuai schema lama.
+Jangan menghapus database atau menjalankan `alembic stamp` untuk melewati pemeriksaan ini.
+
+Jika migration gagal, jangan menghapus data: hentikan app, simpan DB yang gagal, dan verifikasi backup
+pada path terpisah sebelum pemulihan. Jangan menimpa DB aktif atau mengabaikan file WAL/SHM.
+Downgrade migration awal menolak database yang berisi owner/kategori/transaksi; gunakan backup terverifikasi.
+Backup ini khusus pengamanan migration, bukan pengganti prosedur backup rutin task 7.2; simpan salinan privat
+di lokasi terpisah juga. Migration PostgreSQL hanya diuji sebagai DDL offline, bukan pada server PostgreSQL.
 
 ### 2. Menjalankan Frontend
 
@@ -71,7 +103,7 @@ npm install
 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Akses antarmuka melalui peramban web di <http://localhost:5173>.
+Akses antarmuka melalui peramban web di <http://localhost:5173>. Frontend masih berupa shell UI; endpoint CRUD backend belum tersedia.
 
 ---
 
@@ -108,26 +140,33 @@ finance-tracker/
 │   │   ├── config.py        # Konfigurasi aplikasi dan allowlist
 │   │   ├── db.py            # Konfigurasi engine SQLite dan session per request
 │   │   ├── main.py          # Inisialisasi aplikasi FastAPI dan middleware
-│   │   └── security.py      # Middleware validasi origin dan header mutasi
-│   ├── tests/               # Pengujian fungsional dan keamanan
-│   ├── data/                # Lokasi file database SQLite (diabaikan oleh git)
-│   ├── requirements.txt     # Daftar dependensi Python
+│   │   ├── models.py        # Model dan constraint domain
+│   │   ├── schemas.py       # Schema API create/update/read
+│   │   ├── validation.py    # Validasi nominal, tanggal, dan teks
+│   │   └── security.py      # Proteksi Host dan Origin
+│   ├── alembic/             # Environment dan revision migration
+│   ├── alembic.ini          # Konfigurasi Alembic
+│   ├── scripts/             # Migration, backup pra-upgrade, dan bootstrap
+│   ├── tests/               # Tes model, migration, API fondasi, dan keamanan
+│   ├── data/                # Database lokal (di-ignore Git)
+│   ├── requirements.txt
 │   └── .env.example
 ├── frontend/
 │   ├── src/                 # Komponen dan logika antarmuka pengguna
 │   ├── public/              # Aset statis
 │   ├── package.json
 │   └── package-lock.json
-├── PLANNING.local.md        # Rencana arsitektur, fase, dan daftar tugas
 ├── .gitignore
 └── README.md                # Dokumentasi utama proyek
 ```
+
+`PLANNING.local.md` adalah file opsional di working copy lokal dan tidak termasuk struktur repository.
 
 ---
 
 ## Keamanan dan Privasi
 
-- Penggunaan tanpa autentikasi hanya ditujukan untuk lingkungan lokal pribadi tepercaya (`127.0.0.1`).
-- `APP_HOST` hanya menerima alamat IP loopback (`127.0.0.1`, alamat `127.x.x.x`, atau `::1`). Aplikasi menolak startup jika dikonfigurasi untuk bind ke jaringan; hostname seperti `localhost` juga ditolak agar alamat bind tidak bergantung pada resolusi DNS.
-- Endpoint API diproteksi dengan `TrustedHostMiddleware` dan `MutationProtectionMiddleware` untuk menolak request mutasi data (`POST`, `PUT`, `PATCH`, `DELETE`) yang berasal dari origin asing atau jenis konten yang tidak sesuai.
-- File basis data lokal, file konfigurasi `.env`, cadangan data (backup), serta file ekspor CSV dikecualikan dari repositori melalui konfigurasi `.gitignore`.
+- Mode tanpa autentikasi hanya untuk komputer pribadi tepercaya dan bind loopback. Jangan membuka akses melalui LAN, tunnel, port forwarding, atau internet.
+- `APP_HOST` menerima IP loopback saja (`127.0.0.1`, alamat `127.x.x.x`, atau `::1`); hostname seperti `localhost` tidak diterima sebagai alamat bind.
+- Trusted Host dan proteksi Origin/content-type untuk request mutasi bukan pengganti login. Autentikasi wajib ditambahkan sebelum memilih akses remote.
+- Database, `.env`, backup, dan CSV pribadi tidak boleh di-commit. Backup migration di `backend/backups/` bukan pengganti backup rutin yang disimpan pada lokasi privat terpisah.
