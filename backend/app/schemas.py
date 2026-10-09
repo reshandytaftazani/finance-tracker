@@ -135,3 +135,17 @@ class TransactionRead(ReadSchema):
     date: calendar_date
     description: str
     notes: str | None
+
+
+class CategoryPage(BaseModel):
+    items: list[CategoryRead]
+    total: int
+    page: int
+    page_size: int
+
+
+class TransactionPage(BaseModel):
+    items: list[TransactionRead]
+    total: int
+    page: int
+    page_size: int

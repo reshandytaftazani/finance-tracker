@@ -14,7 +14,8 @@ Proyek sedang membangun fondasi MVP:
 - **Model & validasi:** model Owner/Category/Transaction dengan constraint ownership, nominal rupiah integer, normalisasi nama, timestamp UTC, dan schema create/update/read. API nominal menggunakan string digit; client tidak dapat mengirim `owner_id` atau `normalized_name`.
 - **Mode akses & autentikasi:** mode akses ditetapkan eksplisit sebagai single-owner local-only untuk MVP tanpa endpoint register/login/profile publik. Server menyelesaikan kepemilikan data secara internal via bootstrap ID `1` (`app.dependencies.get_current_owner_id`), menolak input/override ownership dari client, dan menolak akses non-local tanpa autentikasi.
 - **Migration & seed:** migration Alembic awal dan bootstrap owner/kategori tersedia melalui command eksplisit. Tidak ada transaksi demo.
-- **Belum tersedia:** endpoint CRUD, dashboard data nyata, dan export. Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
+- **API CRUD:** transaksi/kategori dengan filter, pagination, PATCH parsial, dan isolasi owner. Kategori yang terpakai tidak dapat dihapus atau diubah tipenya.
+- **Belum tersedia:** halaman transaksi terhubung API, dashboard data nyata, dan export CSV. Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
 
 ---
 
@@ -64,6 +65,42 @@ python -m app
 - Dokumentasi API (Swagger UI): <http://127.0.0.1:8000/docs>
 - File basis data: `backend/data/finance.db`
 
+#### API pencatatan lokal
+
+Setelah migration dan bootstrap, gunakan Swagger UI atau client JSON lokal:
+
+| Method | Path | Fungsi |
+|---|---|---|
+| GET / POST | `/api/v1/transactions` | Daftar / tambah transaksi |
+| GET / PATCH / DELETE | `/api/v1/transactions/{id}` | Baca / edit / hapus transaksi |
+| GET / POST | `/api/v1/categories` | Daftar / tambah kategori |
+| PATCH / DELETE | `/api/v1/categories/{id}` | Edit / hapus kategori |
+
+Daftar mengembalikan `items`, `total` (jumlah baris, bukan nominal), `page`, dan `page_size`.
+Default `page=1`, `page_size=20`; ukuran halaman 1–100, nomor halaman 1–2147483647.
+Transaksi menerima filter `start_date`/`end_date` inklusif (`YYYY-MM-DD`), `category_id`, dan
+`type=income|expense`, berurutan tanggal terbaru lalu ID terbesar. Kategori menerima filter
+`type`, berurutan nama normalisasi lalu ID. Filter kategori tidak ada/milik owner lain → 404.
+
+Contoh body POST transaksi:
+```json
+{
+  "category_id": 2,
+  "type": "expense",
+  "amount_rupiah": "150000",
+  "date": "2026-10-09",
+  "description": "Belanja makanan",
+  "notes": null
+}
+```
+Pilih ID kategori expense dari GET kategori; contoh ID `2` mengikuti bootstrap awal.
+Nominal request/response selalu string digit; database memakai integer rupiah.
+PATCH hanya mengubah field yang dikirim; `notes: null` menghapus catatan, null pada field wajib
+ditolak. PATCH `{}` tidak mengubah timestamp. Server menentukan owner; `owner_id` dan
+`normalized_name` tidak boleh dikirim. POST → 201, GET/PATCH → 200, DELETE → 204 tanpa body;
+ID tidak ada/milik owner lain → 404, konflik nama/relasi → 409, input atau tipe kategori tidak
+cocok → 422. Endpoint export CSV belum tersedia (task 3.3).
+
 #### Migration dan bootstrap lokal
 
 Jalankan command dari `backend/`, dengan `.venv` aktif dan **backend dihentikan**.
@@ -104,7 +141,7 @@ npm install
 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
 ```
 
-Akses antarmuka melalui peramban web di <http://localhost:5173>. Frontend masih berupa shell UI; endpoint CRUD backend belum tersedia.
+Akses antarmuka melalui peramban web di <http://localhost:5173>. Frontend masih berupa shell UI; integrasi form dan daftar transaksi dengan API dikerjakan pada task 3.2.
 
 ---
 
