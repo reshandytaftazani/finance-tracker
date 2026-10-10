@@ -109,7 +109,7 @@ Jalankan command dari `backend/`, dengan `.venv` aktif dan **backend dihentikan*
 URL database mengikuti `APP_DATABASE_URL` / `.env`, sama dengan aplikasi. Untuk menguji pada salinan,
 ubah `APP_DATABASE_URL` di terminal tersebut ke path SQLite salinan, bukan DB pribadi.
 
-- `python -m scripts.migrate` menerapkan revision Alembic `0001_initial`/head. Bila ada upgrade tertunda
+- `python -m scripts.migrate` menerapkan revision Alembic terbaru (`0002_budgets`). Bila ada upgrade tertunda
   dan database berisi data, command membuat snapshot melalui SQLite backup API di `backend/backups/`,
   lalu memeriksa integritasnya. Backup gagal → migration dibatalkan. File lama tidak ditimpa.
 - `python -m scripts.seed` membuat owner lokal ID `1` beserta Gaji, Makanan, Transport, dan Hiburan
@@ -128,6 +128,43 @@ pada path terpisah sebelum pemulihan. Jangan menimpa DB aktif atau mengabaikan f
 Downgrade migration awal menolak database yang berisi owner/kategori/transaksi; gunakan backup terverifikasi.
 Backup ini khusus pengamanan migration, bukan pengganti prosedur backup rutin task 7.2; simpan salinan privat
 di lokasi terpisah juga. Migration PostgreSQL hanya diuji sebagai DDL offline, bukan pada server PostgreSQL.
+
+### Budget Bulanan (API)
+
+Task 5.1 menambahkan backend budget; form/progress UI tetap task 5.2. Hentikan backend,
+jalankan `python -m scripts.migrate`, lalu mulai ulang backend. Migration hanya menambah
+tabel budget; transaksi/kategori lama tidak diubah. DB pribadi tidak di-migrate otomatis.
+Downgrade revision budget ditolak bila tabel budget berisi data.
+
+```text
+GET/POST         /api/v1/budgets
+GET/PATCH/DELETE /api/v1/budgets/{id}
+GET              /api/v1/budgets/status?month=10&year=2026
+```
+
+POST menerima `{"category_id":1,"amount_rupiah":"100","month":10,"year":2026}`.
+Kategori wajib expense milik owner server; nominal string digit positif sampai
+`9999999999999`, month 1–12 dan year 1–9999 (integer JSON). Budget unik per
+owner/kategori/bulan/tahun. `owner_id` dan `category_type` bukan input publik.
+PATCH mengubah field yang dikirim saja; `{}` tidak mengubah timestamp, explicit null
+ditolak. Status HTTP mengikuti CRUD transaksi (201/200/204, 404/409/422).
+
+GET list memakai pagination `page`/`page_size` (maksimal 100), filter opsional
+`month`, `year`, `category_id`; urut tahun/bulan/ID descending. Status mewajibkan
+month/year dan mengembalikan semua budget periode itu, urut ID ascending:
+
+```json
+{"month":10,"year":2026,"items":[{"id":1,"category_id":1,"category_name":"Makanan","budget":"100","spent":"125","remaining":"-25","percentage":"125.00","status":"over_budget"}]}
+```
+
+Nominal/totals adalah string exact; remaining boleh negatif. Percentage adalah string
+desimal dua digit, dibulatkan half-up tanpa float dan tidak dibatasi 100%. Status
+ditentukan dari integer exact: normal <80%, warning 80–<100%, over_budget ≥100%.
+Pembulatan dapat menampilkan `80.00` untuk nilai sedikit di bawah 80%; gunakan
+field `status`, jangan menebak status dari persentase tampilan. Spending hanya expense
+owner/kategori pada bulan terpilih dan mencerminkan edit/hapus/pindah transaksi pada
+request berikutnya. Bulan tanpa budget menghasilkan `items: []`; kegagalan DB tetap error,
+bukan nol. Tidak ada yearly budget, carry-over, scheduler, atau alert di luar aplikasi.
 
 ### 2. Menjalankan Frontend
 

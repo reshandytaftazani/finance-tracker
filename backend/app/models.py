@@ -120,6 +120,57 @@ class Category(TimestampedModel, table=True):
     type: TransactionType = Field(sa_column=Column(Text, nullable=False))
 
 
+class Budget(TimestampedModel, table=True):
+    __tablename__ = "budgets"
+    __table_args__ = (
+        CheckConstraint("category_type = 'expense'", name="category_type"),
+        CheckConstraint("month BETWEEN 1 AND 12", name="month_range"),
+        CheckConstraint("year BETWEEN 1 AND 9999", name="year_range"),
+        CheckConstraint(
+            f"amount_rupiah BETWEEN 1 AND {MAX_AMOUNT_RUPIAH}", name="amount_range"
+        ),
+        CheckConstraint(
+            "typeof(amount_rupiah) = 'integer'", name="amount_integer"
+        ).ddl_if(dialect="sqlite"),
+        CheckConstraint(
+            "typeof(month) = 'integer' AND typeof(year) = 'integer'",
+            name="period_integer",
+        ).ddl_if(dialect="sqlite"),
+        UniqueConstraint(
+            "owner_id",
+            "category_id",
+            "month",
+            "year",
+            name="uq_budgets_owner_category_period",
+        ),
+        ForeignKeyConstraint(
+            ["owner_id"],
+            ["owners.id"],
+            name="fk_budgets_owner",
+            onupdate="RESTRICT",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["owner_id", "category_id", "category_type"],
+            ["categories.owner_id", "categories.id", "categories.type"],
+            name="fk_budgets_category",
+            onupdate="RESTRICT",
+            ondelete="RESTRICT",
+        ),
+    )
+
+    id: int | None = Field(default=None, sa_column=Column(INT64, primary_key=True))
+    owner_id: int = Field(sa_column=Column(INT64, nullable=False))
+    category_id: int = Field(sa_column=Column(INT64, nullable=False))
+    category_type: Literal["expense"] = Field(
+        default="expense",
+        sa_column=Column(Text, nullable=False, server_default=text("'expense'")),
+    )
+    amount_rupiah: int = Field(sa_column=Column(INT64, nullable=False))
+    month: int = Field(sa_column=Column(Integer, nullable=False))
+    year: int = Field(sa_column=Column(Integer, nullable=False))
+
+
 class Transaction(TimestampedModel, table=True):
     __tablename__ = "transactions"
     __table_args__ = (
@@ -200,3 +251,17 @@ def clean_transaction(_mapper, _connection, transaction: Transaction) -> None:
         raise ValueError("Stored amount must be an integer rupiah within range")
     if type(transaction.date) is not calendar_date:
         raise ValueError("Stored date must be a calendar date without time or timezone")
+
+
+@event.listens_for(Budget, "before_insert")
+@event.listens_for(Budget, "before_update")
+def validate_budget(_mapper, _connection, budget: Budget) -> None:
+    for value, maximum in [
+        (budget.amount_rupiah, MAX_AMOUNT_RUPIAH),
+        (budget.month, 12),
+        (budget.year, 9999),
+    ]:
+        if type(value) is not int or not 1 <= value <= maximum:
+            raise ValueError(
+                "Stored budget amount and period must be integers within range"
+            )

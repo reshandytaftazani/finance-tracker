@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.api.analytics import router as analytics_router
+from app.api.budgets import router as budgets_router
 from app.api.categories import router as categories_router
 from app.api.health import router as health_router
 from app.api.transactions import router as transactions_router
@@ -36,3 +37,4 @@ app.include_router(health_router)
 app.include_router(categories_router)
 app.include_router(transactions_router)
 app.include_router(analytics_router)
+app.include_router(budgets_router)

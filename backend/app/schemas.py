@@ -2,7 +2,7 @@
 
 from datetime import date as calendar_date
 from datetime import datetime, timezone
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import (
     AfterValidator,
@@ -185,3 +185,59 @@ class AnalyticsByCategory(BaseModel):
     month: int = Field(ge=1, le=12)
     year: int = Field(ge=1, le=9999)
     items: list[CategoryExpense]
+
+
+BudgetMonth = Annotated[int, Field(strict=True, ge=1, le=12)]
+BudgetYear = Annotated[int, Field(strict=True, ge=1, le=9999)]
+
+
+class BudgetCreate(InputSchema):
+    category_id: CategoryID
+    amount_rupiah: AmountInput
+    month: BudgetMonth
+    year: BudgetYear
+
+
+class BudgetUpdate(InputSchema):
+    category_id: CategoryID | None = None
+    amount_rupiah: AmountInput | None = None
+    month: BudgetMonth | None = None
+    year: BudgetYear | None = None
+
+    @field_validator("category_id", "amount_rupiah", "month", "year", mode="before")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Field cannot be null; omit it to keep the existing value")
+        return value
+
+
+class BudgetRead(ReadSchema):
+    category_id: int
+    amount_rupiah: AmountRead
+    month: BudgetMonth
+    year: BudgetYear
+
+
+class BudgetPage(BaseModel):
+    items: list[BudgetRead]
+    total: int
+    page: int
+    page_size: int
+
+
+class BudgetStatusItem(BaseModel):
+    id: int
+    category_id: int
+    category_name: str
+    budget: AmountRead
+    spent: AggregateAmount
+    remaining: NetCashFlow
+    percentage: str = Field(pattern=r"^[0-9]+\.[0-9]{2}$")
+    status: Literal["normal", "warning", "over_budget"]
+
+
+class BudgetStatus(BaseModel):
+    month: BudgetMonth
+    year: BudgetYear
+    items: list[BudgetStatusItem]
