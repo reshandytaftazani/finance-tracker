@@ -40,8 +40,9 @@ export async function checkBudgets({ send, evaluate, text, waitText, until, clic
   }
   await apiRequest("/transactions", "POST", { category_id: fun, type: "expense", amount_rupiah: "50", date: "2026-07-05", description: "Budget fixture" });
   // Reload to pick up test-only API writes. Production mutations below use SPA.
+  const beforeFixtureReload = await evaluate("performance.timeOrigin");
   await send("Page.reload");
-  await waitText("Tambah Budget");
+  await until(async () => await evaluate(`performance.timeOrigin !== ${beforeFixtureReload} && Boolean(document.querySelector('[name=budget-filter-period]'))`), "reloaded budget period control");
   await fill("budget-filter-period", "2026-07");
   await waitText("125%");
   await waitText("Mendekati batas");
@@ -185,8 +186,11 @@ export async function checkBudgets({ send, evaluate, text, waitText, until, clic
   await apiRequest("/budgets", "POST", { category_id: fun, amount_rupiah: "40", month: 7, year: 2026 });
   await fill("budget-filter-period", "2026-09");
   await waitText("Belum ada budget");
+  const beforeReload = await evaluate("performance.timeOrigin");
   await send("Page.reload");
-  await waitText("Tambah Budget");
+  // Header/controls also exist in the old document. Wait for the new document
+  // and React's mounted control rather than racing a pending reload.
+  await until(async () => await evaluate(`performance.timeOrigin !== ${beforeReload} && Boolean(document.querySelector('[name=budget-filter-period]'))`), "reloaded budget period control");
   await fill("budget-filter-period", "2026-07");
   await waitText("125%");
   await evaluate("window.scrollTo(0,0)");

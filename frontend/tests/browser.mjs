@@ -9,6 +9,7 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { checkBudgets } from "./budget-browser.mjs";
+import { checkPolish } from "./polish-browser.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = await mkdtemp(resolve(process.env.TEST_ARTIFACTS_DIR || tmpdir(), "finance-ui-"));
@@ -111,7 +112,10 @@ try {
     // Mobile Chrome may expand innerWidth to fit overflowing content; compare
     // with the requested CSS viewport, not that already-expanded layout width.
     assert.equal(await evaluate(`document.documentElement.scrollWidth > ${width}`), false, `page overflow at ${width}px`);
-    const shot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
+    // Use document bounds rather than Chrome's visual overflow bounds, which
+    // can include intentionally off-screen skip links above the page.
+    const pageHeight = await evaluate("document.documentElement.scrollHeight");
+    const shot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: { x: 0, y: 0, width, height: pageHeight, scale: 1 } });
     await writeFile(resolve(artifacts, name), Buffer.from(shot.data, "base64"));
   }
   await send("Runtime.enable");
@@ -463,6 +467,7 @@ try {
   await capture("mobile-dashboard.png", 390, 844);
   console.log("PASS dashboard renders summary metrics, category breakdown and recent transactions");
   await checkBudgets({ send, evaluate, text, waitText, until, click, fill, apiRequest, follow, ui, categories, capture });
+  await checkPolish({ send, evaluate, waitText, until, click, apiRequest, ui, categories, capture });
   assert.deepEqual(consoleErrors, []);
   console.log("PASS desktop/mobile no page overflow, captures, no uncaught browser errors");
   console.log(`Browser tests passed. Artifacts: ${artifacts}`);

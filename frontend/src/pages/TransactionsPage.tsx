@@ -16,6 +16,8 @@ export function TransactionsPage() {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
   const exportPending = useRef(false);
+  const exportButton = useRef<HTMLButtonElement>(null);
+  const focusAfterExport = useRef(false);
   const opener = useRef<HTMLElement | null>(null);
   const focusAfterClose = useRef(false);
   const addButton = useRef<HTMLButtonElement>(null);
@@ -25,6 +27,17 @@ export function TransactionsPage() {
   const categoryItems = categories.data ?? [];
   const categoriesReady = categories.isSuccess;
   const totalPages = Math.max(1, Math.ceil((list.data?.total ?? 0) / 20));
+
+  useEffect(() => {
+    // Export disables the focused control; retry also disappears when its error
+    // clears. Restore focus after the persistent export button is enabled, never
+    // stealing focus if the
+    // user moved to a different control while the request was pending.
+    if (!exporting && focusAfterExport.current) {
+      focusAfterExport.current = false;
+      if (document.activeElement === document.body) exportButton.current?.focus();
+    }
+  }, [exporting]);
 
   // Deleting the last row of a deep page returns to the new final page. Do not
   // keep stale rows from another filter while the replacement request loads.
@@ -57,8 +70,9 @@ export function TransactionsPage() {
   }
   function closeEditor() { setEditor(null); restoreFocus(); }
 
-  async function downloadCSV() {
+  async function downloadCSV(source: HTMLButtonElement) {
     if (exportPending.current || !validMonth) return;
+    focusAfterExport.current = document.activeElement === source;
     exportPending.current = true;
     setExporting(true);
     setExportError("");
@@ -95,7 +109,7 @@ export function TransactionsPage() {
           <p className="mt-1 text-sm text-slate-600">Pencatatan manual pemasukan dan pengeluaran harian.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-        <button type="button" disabled={exporting || !validMonth} aria-describedby="export-help" onClick={() => void downloadCSV()} className="transaction-button inline-flex items-center justify-center gap-2">
+        <button ref={exportButton} type="button" disabled={exporting || !validMonth} aria-describedby="export-help" onClick={(event) => void downloadCSV(event.currentTarget)} className="transaction-button inline-flex items-center justify-center gap-2">
           <Download aria-hidden="true" className="h-4 w-4" />{exporting ? "Mengekspor…" : "Export CSV"}
         </button>
         <button ref={addButton} type="button" disabled={Boolean(editor)} onClick={() => openEditor(null)} className="transaction-button transaction-primary inline-flex items-center justify-center gap-2">
@@ -109,7 +123,7 @@ export function TransactionsPage() {
       {exporting && <p role="status" className="text-sm text-slate-600">Menyiapkan CSV…</p>}
       {exportError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
         <p>Export CSV gagal. {exportError}</p>
-        <button type="button" className="transaction-button mt-3" disabled={exporting || !validMonth} onClick={() => void downloadCSV()}>Coba lagi export</button>
+        <button type="button" className="transaction-button mt-3" disabled={exporting || !validMonth} onClick={(event) => void downloadCSV(event.currentTarget)}>Coba lagi export</button>
       </div>}
       {categories.isError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
         <p>Kategori gagal dimuat. {categories.error.message}</p>

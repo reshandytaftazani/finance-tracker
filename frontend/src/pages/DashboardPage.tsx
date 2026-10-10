@@ -122,8 +122,10 @@ export const DashboardPage: React.FC = () => {
               max="9999-12"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="text-xs font-medium bg-transparent border-none text-slate-900 focus:outline-hidden cursor-pointer"
-              aria-label="Pilih bulan dan tahun periode dashboard"
+               className="min-h-11 text-sm font-medium bg-transparent border-none text-slate-900 cursor-pointer"
+               aria-label="Pilih bulan dan tahun periode dashboard"
+               aria-invalid={!validMonth}
+               aria-describedby={!validMonth ? "dashboard-period-error" : undefined}
             />
           </div>
 
@@ -153,6 +155,7 @@ export const DashboardPage: React.FC = () => {
       {!validMonth && (
         <div
           role="alert"
+          id="dashboard-period-error"
           className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
         >
           Pilih periode bulan yang valid (format YYYY-MM antara tahun 0001 hingga 9999) untuk melihat dashboard.
@@ -206,7 +209,7 @@ export const DashboardPage: React.FC = () => {
             ) : summaryUnavailable ? (
               <p className="text-sm text-slate-600">Data tidak tersedia</p>
             ) : (
-              <div className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
+               <div className="break-all text-2xl font-bold text-slate-900 font-mono tracking-tight">
                 {formatRupiah(summaryQuery.data?.income ?? "0")}
               </div>
             )}
@@ -230,7 +233,7 @@ export const DashboardPage: React.FC = () => {
             ) : summaryUnavailable ? (
               <p className="text-sm text-slate-600">Data tidak tersedia</p>
             ) : (
-              <div className="text-2xl font-bold text-slate-900 font-mono tracking-tight">
+               <div className="break-all text-2xl font-bold text-slate-900 font-mono tracking-tight">
                 {formatRupiah(summaryQuery.data?.expense ?? "0")}
               </div>
             )}
@@ -254,9 +257,9 @@ export const DashboardPage: React.FC = () => {
             ) : summaryUnavailable ? (
               <p className="text-sm text-slate-600">Data tidak tersedia</p>
             ) : (
-              <div className="flex items-baseline gap-2">
+               <div className="flex flex-wrap items-baseline gap-2">
                 <span
-                  className={`text-2xl font-bold font-mono tracking-tight ${
+                   className={`min-w-0 break-all text-2xl font-bold font-mono tracking-tight ${
                     netCashFlowBigInt > 0n
                       ? "text-emerald-700"
                       : netCashFlowBigInt < 0n
@@ -288,7 +291,7 @@ export const DashboardPage: React.FC = () => {
           className="lg:col-span-2 bg-white rounded-lg border border-slate-200 p-6 shadow-xs flex flex-col justify-between"
         >
           <div>
-            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+             <div className="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-slate-600" aria-hidden="true" />
                 <h2 className="text-base font-semibold text-slate-900">
@@ -364,7 +367,7 @@ export const DashboardPage: React.FC = () => {
                   return (
                     <div
                       key={transaction.id}
-                      className="py-3 flex items-center justify-between gap-3 hover:bg-slate-50/70 px-2 rounded-md transition-colors"
+                       className="py-3 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center hover:bg-slate-50/70 px-2 rounded-md transition-colors"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -377,7 +380,7 @@ export const DashboardPage: React.FC = () => {
                         </div>
                         <p className="text-sm font-medium text-slate-900 truncate mt-1">
                           {transaction.description || (
-                            <span className="text-slate-400 italic">Tanpa deskripsi</span>
+                             <span className="text-slate-600 italic">Tanpa deskripsi</span>
                           )}
                         </p>
                       </div>
@@ -391,7 +394,7 @@ export const DashboardPage: React.FC = () => {
                           {isIncome ? "+" : "-"}
                           {formatRupiah(transaction.amount_rupiah)}
                         </div>
-                        <span className="text-[11px] text-slate-400">
+                         <span className="text-xs text-slate-600">
                           {isIncome ? "Pemasukan" : "Pengeluaran"}
                         </span>
                       </div>
@@ -469,15 +472,15 @@ export const DashboardPage: React.FC = () => {
 
                   return (
                     <div key={item.category_id} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs">
+                       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                         <span className="font-medium text-slate-800 truncate max-w-40">
                           {item.category_name}
                         </span>
-                        <div className="flex items-center gap-2">
+                         <div className="flex min-w-0 flex-wrap items-center gap-2">
                           <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
                             {percentageFormatted}
                           </span>
-                          <span className="tabular-nums font-mono font-medium text-slate-900">
+                           <span className="break-all tabular-nums font-mono font-medium text-slate-900">
                             {formatRupiah(item.expense)}
                           </span>
                         </div>
@@ -504,7 +507,7 @@ export const DashboardPage: React.FC = () => {
             )}
           </div>
 
-          <p className="text-[11px] text-slate-400 mt-6 pt-3 border-t border-slate-100 text-center">
+           <p className="text-xs text-slate-600 mt-6 pt-3 border-t border-slate-100 text-center">
             Hanya memuat kategori pengeluaran bertransaksi.
           </p>
         </section>

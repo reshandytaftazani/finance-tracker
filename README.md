@@ -312,6 +312,12 @@ Flow yang diuji: tambah 3/hapus 1, edit, filter/pagination, reload, download CSV
 filter/lintas halaman, error/retry, double-submit/double-export,
 serta viewport desktop/mobile. Screenshot emulasi bukan pengujian perangkat fisik atau screen reader.
 
+Pemeriksaan polish tambahan memakai keyboard nyata untuk skip link ke konten utama dan
+fokus pemilih periode, serta memeriksa penanda halaman aktif dan pemulihan fokus retry export.
+Dashboard diuji dengan nominal besar pada lebar 320, 390, 768, dan 1366px; tabel transaksi
+tetap dapat digeser horizontal pada layar kecil. Kontras teks sekunder dashboard diperiksa
+dari warna hasil render browser. Ini bukan audit aksesibilitas menyeluruh atau sertifikasi WCAG.
+
 ---
 
 ## Struktur Direktori
