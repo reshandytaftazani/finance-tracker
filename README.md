@@ -318,6 +318,20 @@ Dashboard diuji dengan nominal besar pada lebar 320, 390, 768, dan 1366px; tabel
 tetap dapat digeser horizontal pada layar kecil. Kontras teks sekunder dashboard diperiksa
 dari warna hasil render browser. Ini bukan audit aksesibilitas menyeluruh atau sertifikasi WCAG.
 
+### Tampilan Modern Finance
+
+Dashboard, Transaksi, dan Budget menggunakan satu sistem light slate/biru: aksi utama dan
+navigasi aktif memakai aksen biru, sementara warna pemasukan/pengeluaran/status tetap semantik.
+Ringkasan arus kas mendapat penekanan visual, dengan DOM reading order tetap konsisten.
+Token radius, panel, tipografi, tombol, dan kontrol native dibagi melalui `frontend/src/index.css`.
+`Money` menggunakan formatter rupiah exact yang sama dan membungkus hanya antar-kelompok
+ribuan, bukan di tengah digit. Tidak ada perubahan API, fitur, dependency, atau data tersimpan.
+Skeleton berhenti beranimasi saat `prefers-reduced-motion: reduce` aktif.
+
+Tes browser tambahan menguji net surplus/defisit besar dari transaksi API nyata pada lebar
+320/768/1366px dan posisi glyph agar kelompok digit tidak terbelah. Pemeriksaan ini belum
+menggantikan pengujian screen reader/perangkat fisik.
+
 ---
 
 ## Struktur Direktori

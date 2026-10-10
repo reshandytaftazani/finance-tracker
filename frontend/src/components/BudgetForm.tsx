@@ -53,7 +53,7 @@ export function BudgetForm({ budget, period, categories, categoriesReady, onCanc
   });
   const errorText = (field: keyof BudgetDraft) => <span id={`budget-${field}-error`} className="transaction-field-error">{errors[field]}</span>;
 
-  return <section aria-labelledby="budget-form-title" className="rounded-lg border border-slate-200 bg-white p-5 sm:p-6">
+  return <section aria-labelledby="budget-form-title" className="finance-panel finance-form">
     <h2 id="budget-form-title" className="text-lg font-semibold text-slate-900">{budget ? "Edit budget" : "Tambah budget"}</h2>
     <p className="mt-1 text-sm text-slate-600">Satu batas pengeluaran per kategori dan bulan. Transaksi yang sudah dicatat tidak diubah.</p>
     <form ref={form} noValidate onSubmit={submit} className="mt-5 space-y-5">

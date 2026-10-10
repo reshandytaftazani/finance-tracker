@@ -10,6 +10,7 @@ import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
 import { checkBudgets } from "./budget-browser.mjs";
 import { checkPolish } from "./polish-browser.mjs";
+import { checkModernFinance } from "./modern-finance-browser.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = await mkdtemp(resolve(process.env.TEST_ARTIFACTS_DIR || tmpdir(), "finance-ui-"));
@@ -468,6 +469,7 @@ try {
   console.log("PASS dashboard renders summary metrics, category breakdown and recent transactions");
   await checkBudgets({ send, evaluate, text, waitText, until, click, fill, apiRequest, follow, ui, categories, capture });
   await checkPolish({ send, evaluate, waitText, until, click, apiRequest, ui, categories, capture });
+  await checkModernFinance({ send, evaluate, until, waitText, apiRequest, ui, categories, capture });
   assert.deepEqual(consoleErrors, []);
   console.log("PASS desktop/mobile no page overflow, captures, no uncaught browser errors");
   console.log(`Browser tests passed. Artifacts: ${artifacts}`);

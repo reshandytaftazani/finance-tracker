@@ -75,7 +75,7 @@ export function TransactionForm({ transaction, categories, categoriesReady, onCa
   const errorText = (field: keyof TransactionDraft) => <span id={`${field}-error`} className="transaction-field-error">{errors[field]}</span>;
 
   return (
-    <section aria-labelledby="transaction-form-title" className="rounded-lg border border-slate-200 bg-white p-5 sm:p-6">
+    <section aria-labelledby="transaction-form-title" className="finance-panel finance-form">
       <h2 id="transaction-form-title" className="text-lg font-semibold text-slate-900">{transaction ? "Edit transaksi" : "Tambah transaksi"}</h2>
       <p className="mt-1 text-sm text-slate-600">Catat rupiah utuh. Tanggal mengikuti kalender lokal, bukan waktu UTC.</p>
       <form ref={formRef} noValidate onSubmit={submit} className="mt-5 space-y-5">

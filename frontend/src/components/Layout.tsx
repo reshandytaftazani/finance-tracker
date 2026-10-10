@@ -25,19 +25,19 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+    <div className="finance-app min-h-screen flex flex-col text-slate-900">
       <a href="#main-content" className="skip-link" onClick={() => document.getElementById("main-content")?.focus()}>Lewati ke konten utama</a>
       {/* Top Navigation */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <div className="flex items-center space-x-8">
-              <div className="flex items-center space-x-2">
-                <span className="font-semibold text-lg text-slate-900 tracking-tight">
+      <header className="finance-topbar">
+        <div className="finance-shell">
+          <div className="finance-topbar-inner">
+            <div className="flex min-w-0 items-center gap-8">
+              <div className="finance-brand">
+                <span>
                   Personal Finance Tracker
                 </span>
               </div>
-              <nav aria-label="Navigasi utama" className="hidden md:flex space-x-1">
+              <nav aria-label="Navigasi utama" className="hidden lg:flex gap-1">
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.path;
@@ -46,13 +46,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                       key={item.path}
                       to={item.path}
                       aria-current={isActive ? "page" : undefined}
-                      className={`inline-flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                        isActive
-                          ? "bg-slate-100 text-slate-900"
-                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
-                      }`}
+                      className="finance-nav-link"
                     >
-                      <Icon aria-hidden="true" className="w-4 h-4 mr-2 text-slate-500" />
+                      <Icon aria-hidden="true" className="w-4 h-4" />
                       {item.label}
                     </Link>
                   );
@@ -60,16 +56,16 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </nav>
             </div>
 
-            <div className="flex items-center space-x-3 text-xs">
+            <div className="flex shrink-0 items-center gap-3 text-xs">
               {/* Local Security Badge */}
-              <div className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 border border-slate-200 font-mono">
-                <ShieldCheck className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+              <div className="hidden xl:inline-flex items-center text-slate-600">
+                <ShieldCheck aria-hidden="true" className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
                 127.0.0.1
               </div>
 
               {/* Health Status Indicator */}
               <div
-                className={`inline-flex items-center px-2.5 py-1 rounded-md border font-medium ${
+                className={`finance-status border ${
                   isSuccess && health?.status === "ok"
                     ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                     : isError
@@ -77,7 +73,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     : "bg-slate-100 text-slate-600 border-slate-200"
                 }`}
               >
-                <Activity className="w-3.5 h-3.5 mr-1.5" />
+                <Activity aria-hidden="true" className="w-3.5 h-3.5 shrink-0 mr-1.5" />
                 <span>
                   {isSuccess && health?.status === "ok"
                     ? "API Aktif"
@@ -91,7 +87,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
 
         {/* Mobile Navigation */}
-        <nav aria-label="Navigasi utama" className="md:hidden border-t border-slate-200 bg-white px-4 py-2 flex flex-wrap gap-2">
+        <nav aria-label="Navigasi utama" className="finance-shell finance-mobile-nav lg:hidden grid grid-cols-3 gap-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -100,13 +96,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 key={item.path}
                 to={item.path}
                 aria-current={isActive ? "page" : undefined}
-                className={`inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium ${
-                  isActive
-                    ? "bg-slate-100 text-slate-900"
-                    : "text-slate-600 hover:bg-slate-50"
-                }`}
+                className="finance-nav-link"
               >
-                <Icon aria-hidden="true" className="w-4 h-4 mr-1.5 text-slate-500" />
+                <Icon aria-hidden="true" className="w-4 h-4" />
                 {item.label}
               </Link>
             );
@@ -115,13 +107,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </header>
 
       {/* Main Content */}
-      <main id="main-content" tabIndex={-1} className="scroll-mt-48 flex-1 min-w-0 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main id="main-content" tabIndex={-1} className="finance-shell finance-main scroll-mt-48 flex-1 min-w-0">
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
-        <div className="max-w-6xl mx-auto px-4">
+      <footer className="finance-footer">
+        <div className="finance-shell">
           Personal Finance Tracker &bull; Mode Lokal Tunggal (Single-Owner)
         </div>
       </footer>
