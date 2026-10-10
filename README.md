@@ -17,7 +17,7 @@ Proyek sedang membangun fondasi MVP:
 - **API CRUD:** transaksi/kategori dengan filter, pagination, PATCH parsial, dan isolasi owner. Kategori yang terpakai tidak dapat dihapus atau diubah tipenya.
 - **Halaman transaksi & export CSV:** tambah/edit/hapus melalui API, filter bulan/kategori/tipe, pagination, validasi inline, konfirmasi hapus, loading/error/retry, serta export CSV aman. Nominal dikirim sebagai string digit; perubahan memperbarui list dan menginvalidasi cache analytics. ID melebihi `Number.MAX_SAFE_INTEGER` ditolak di browser (termasuk pembacaan) untuk mencegah mutasi ke ID yang dibulatkan; dukungan penuh ID 64-bit belum tersedia di UI.
 - **Dashboard keuangan:** metrik total pemasukan, total pengeluaran, dan arus kas bersih (net cash flow), pemilih periode bulan, distribusi alokasi pengeluaran per kategori, serta daftar transaksi terbaru yang terhubung langsung ke API analytics dan transaksi.
-- **Belum tersedia:** fitur budget management (Phase 5). Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
+- **Budget bulanan:** batas pengeluaran kategori expense, CRUD owner-scoped, progress aktual dan alert 80%/100% di halaman Budget; perubahan transaksi menginvalidasi cache budget semua periode. Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
 
 ---
 
@@ -131,7 +131,21 @@ di lokasi terpisah juga. Migration PostgreSQL hanya diuji sebagai DDL offline, b
 
 ### Budget Bulanan (API)
 
-Task 5.1 menambahkan backend budget; form/progress UI tetap task 5.2. Hentikan backend,
+Halaman **Budget** menyediakan form tambah/edit, konfirmasi hapus, dan progress per kategori.
+Pilih bulan, lalu klik **Tambah Budget**; hanya kategori pengeluaran yang dapat dipilih.
+Nominal tetap digit rupiah utuh. Setelah disimpan, halaman menampilkan bulan budget tersebut.
+Budget duplikat kategori/bulan ditolak tanpa menghapus isian; error dapat diperbaiki/dicoba lagi.
+Periode halaman dikunci saat form atau konfirmasi hapus terbuka agar konteksnya tetap jelas.
+
+Progress menampilkan nominal budget, terpakai, sisa (dapat negatif), persentase aktual, dan
+label Normal/Mendekati batas/Over budget. Bar maksimal 100%, tetapi label tetap dapat
+menunjukkan 125%. Label status mengikuti hasil exact server, bukan persentase yang sudah
+dibulatkan. Alert hanya di halaman Budget, tanpa notifikasi desktop/email atau scheduler.
+Mutasi transaksi memperbarui cache budget semua periode, termasuk saat tanggal dipindah bulan;
+kembali ke halaman Budget untuk membaca hasil terbaru. Menghapus budget tidak menghapus transaksi.
+Kegagalan memuat data menyembunyikan nominal lama dan menyediakan aksi coba lagi, bukan total nol.
+
+Backend budget memerlukan migration terbaru. Hentikan backend,
 jalankan `python -m scripts.migrate`, lalu mulai ulang backend. Migration hanya menambah
 tabel budget; transaksi/kategori lama tidak diubah. DB pribadi tidak di-migrate otomatis.
 Downgrade revision budget ditolak bila tabel budget berisi data.

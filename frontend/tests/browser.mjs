@@ -8,6 +8,7 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { setTimeout as delay } from "node:timers/promises";
+import { checkBudgets } from "./budget-browser.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = await mkdtemp(resolve(process.env.TEST_ARTIFACTS_DIR || tmpdir(), "finance-ui-"));
@@ -107,7 +108,9 @@ try {
   async function capture(name, width, height) {
     await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 1, mobile: width < 600 });
     await delay(150);
-    assert.equal(await evaluate("document.documentElement.scrollWidth > innerWidth"), false, `page overflow at ${width}px`);
+    // Mobile Chrome may expand innerWidth to fit overflowing content; compare
+    // with the requested CSS viewport, not that already-expanded layout width.
+    assert.equal(await evaluate(`document.documentElement.scrollWidth > ${width}`), false, `page overflow at ${width}px`);
     const shot = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true });
     await writeFile(resolve(artifacts, name), Buffer.from(shot.data, "base64"));
   }
@@ -459,6 +462,7 @@ try {
   await capture("desktop-dashboard.png", 1366, 900);
   await capture("mobile-dashboard.png", 390, 844);
   console.log("PASS dashboard renders summary metrics, category breakdown and recent transactions");
+  await checkBudgets({ send, evaluate, text, waitText, until, click, fill, apiRequest, follow, ui, categories, capture });
   assert.deepEqual(consoleErrors, []);
   console.log("PASS desktop/mobile no page overflow, captures, no uncaught browser errors");
   console.log(`Browser tests passed. Artifacts: ${artifacts}`);

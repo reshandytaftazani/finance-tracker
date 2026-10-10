@@ -135,5 +135,6 @@ export async function invalidateTransactionQueries(client: QueryClient): Promise
   await Promise.all([
     client.invalidateQueries({ queryKey: ["transactions"] }),
     client.invalidateQueries({ queryKey: ["analytics"] }),
+    client.invalidateQueries({ queryKey: ["budgets"] }),
   ]);
 }

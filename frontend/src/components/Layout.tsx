@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, ArrowLeftRight, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { Activity, ArrowLeftRight, LayoutDashboard, ShieldCheck, Wallet } from "lucide-react";
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchHealth } from "../api/client";
@@ -21,6 +21,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navItems = [
     { label: "Dashboard", path: "/", icon: LayoutDashboard },
     { label: "Transaksi", path: "/transactions", icon: ArrowLeftRight },
+    { label: "Budget", path: "/budgets", icon: Wallet },
   ];
 
   return (
@@ -88,7 +89,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden border-t border-slate-200 bg-white px-4 py-2 flex space-x-2">
+        <div className="md:hidden border-t border-slate-200 bg-white px-4 py-2 flex flex-wrap gap-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
