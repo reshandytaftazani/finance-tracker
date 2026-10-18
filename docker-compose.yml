@@ -1,0 +1,33 @@
+services:
+  finance-tracker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: finance-tracker
+    restart: unless-stopped
+    ports:
+      # Bind ke loopback host (127.0.0.1) secara default agar aman dan hanya dapat diakses dari host
+      - "127.0.0.1:8000:8000"
+    environment:
+      - APP_ENV=production
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8000
+      - APP_AUTH_ENABLED=true
+      - APP_DATABASE_URL=sqlite:////app/data/finance.db
+      - APP_STATIC_DIR=/app/static
+      # Opsional: Atur password pemilik otomatis pada container startup pertama:
+      # - APP_OWNER_PASSWORD=password-rahasia-anda
+    volumes:
+      # Volume persisten untuk file database SQLite
+      - finance-data:/app/data
+      # Volume persisten untuk file backup database
+      - finance-backups:/app/backups
+    deploy:
+      # Single-instance strictly enforced untuk konsistensi file SQLite
+      replicas: 1
+
+volumes:
+  finance-data:
+    name: finance_tracker_data
+  finance-backups:
+    name: finance_tracker_backups

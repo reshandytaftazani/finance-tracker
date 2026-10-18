@@ -1,7 +1,7 @@
 from functools import lru_cache
 from ipaddress import ip_address
 
-from pydantic import field_validator
+from pydantic import ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,21 +16,25 @@ class Settings(BaseSettings):
     name: str = "Personal Finance Tracker"
     env: str = "local"
     debug: bool = False
+    auth_enabled: bool = False
     host: str = "127.0.0.1"
     port: int = 8000
     database_url: str = "sqlite:///./data/finance.db"
     frontend_origin: str = "http://localhost:5173"
     allowed_hosts: list[str] = ["127.0.0.1", "localhost", "testserver"]
-    auth_enabled: bool = False
     session_cookie_name: str = "finance_session"
     session_expire_days: int = 7
     session_cookie_secure: bool = False
     session_cookie_samesite: str = "lax"
+    static_dir: str | None = None
 
     @field_validator("host")
     @classmethod
-    def host_must_be_loopback(cls, host: str) -> str:
+    def host_must_be_loopback(cls, host: str, info: ValidationInfo) -> str:
         """Keep the unauthenticated local app off the network."""
+        if info.data.get("auth_enabled") or info.data.get("env") != "local":
+            return host
+
         try:
             address = ip_address(host)
         except ValueError as error:
@@ -53,6 +57,8 @@ class Settings(BaseSettings):
             origins.add(self.frontend_origin.replace("localhost", "127.0.0.1"))
         elif "127.0.0.1" in self.frontend_origin:
             origins.add(self.frontend_origin.replace("127.0.0.1", "localhost"))
+        origins.add(f"http://127.0.0.1:{self.port}")
+        origins.add(f"http://localhost:{self.port}")
         return sorted(origins)
 
 

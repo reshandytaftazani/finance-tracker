@@ -49,3 +49,16 @@ def test_cli_set_password_entrypoint(auth_db, monkeypatch):
         owner = session.exec(select(Owner).where(Owner.id == 1)).first()
         assert owner is not None
         assert verify_password("super-secret-password", owner.password_hash) is True
+
+
+def test_cli_set_password_via_env(auth_db, monkeypatch):
+    monkeypatch.setattr("scripts.auth.engine", auth_db)
+    monkeypatch.setenv("APP_OWNER_PASSWORD", "env-secret-password-xyz")
+
+    exit_code = main(["set-password", "--env", "--owner-id", "1"])
+    assert exit_code == 0
+
+    with Session(auth_db) as session:
+        owner = session.exec(select(Owner).where(Owner.id == 1)).first()
+        assert owner is not None
+        assert verify_password("env-secret-password-xyz", owner.password_hash) is True

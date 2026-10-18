@@ -20,6 +20,7 @@ Proyek sedang membangun fondasi MVP:
 - **Halaman transaksi & export CSV:** tambah/edit/hapus melalui API, filter bulan/kategori/tipe, pagination, validasi inline, konfirmasi hapus, loading/error/retry, serta export CSV aman. Nominal dikirim sebagai string digit; perubahan memperbarui list dan menginvalidasi cache analytics. ID melebihi `Number.MAX_SAFE_INTEGER` ditolak di browser (termasuk pembacaan) untuk mencegah mutasi ke ID yang dibulatkan; dukungan penuh ID 64-bit belum tersedia di UI.
 - **Dashboard keuangan:** metrik total pemasukan, total pengeluaran, dan arus kas bersih (net cash flow), pemilih periode bulan, distribusi alokasi pengeluaran per kategori, serta daftar transaksi terbaru yang terhubung langsung ke API analytics dan transaksi.
 - **Budget bulanan:** batas pengeluaran kategori expense, CRUD owner-scoped, progress aktual dan alert 80%/100% di halaman Budget; perubahan transaksi menginvalidasi cache budget semua periode. Startup tidak menjalankan migration atau seed otomatis. Progress task hanya ada pada catatan lokal yang tidak di-commit.
+- **Container & hosting pribadi (Docker):** deployment container mandiri via multi-stage `Dockerfile` (Node 24 frontend builder + Python 3.13-slim runner) dan `docker-compose.yml`. Menyajikan frontend build dan REST API dalam satu origin (same-origin static mount), volume persisten SQLite (`finance_tracker_data` dan `finance_tracker_backups`), penegakan single-instance (`replicas: 1`), dan healthcheck otomatis.
 
 ---
 
@@ -157,6 +158,31 @@ Aplikasi menyediakan mekanisme proteksi single-owner dengan hashing password Arg
    - **Token Hash di DB:** Database hanya menyimpan hash SHA-256 token pada tabel `user_sessions`, token plaintext tidak disimpan.
    - **Guard Endpoint:** Saat `APP_AUTH_ENABLED=true` (atau non-local), seluruh akses data mengembalikan `401 Unauthorized` bila tidak terotentikasi.
    - **Frontend Guard:** SPA otomatis mendeteksi sesi via `/api/v1/auth/me`, mengarahkan pengguna ke `/login`, dan menyediakan tombol Keluar pada navigasi header.
+
+### Hosting Pribadi via Docker & Compose (Task 7.3)
+
+Aplikasi dapat dijalankan secara mandiri dalam satu container Docker dengan arsitektur same-origin:
+
+1. **Jalankan Aplikasi:**
+   ```powershell
+   docker compose up -d --build
+   ```
+
+2. **Akses Aplikasi:**
+   - Aplikasi siap diakses pada browser di: <http://127.0.0.1:8000>
+   - Healthcheck otomatis: <http://127.0.0.1:8000/health>
+
+3. **Atur Password Pemilik di Container:**
+   ```powershell
+   docker compose exec finance-tracker python -m scripts.auth set-password
+   ```
+   Atau definisikan variabel environment `APP_OWNER_PASSWORD` pada `docker-compose.yml` saat container pertama kali dibuat.
+
+4. **Karakteristik & Integritas Data:**
+   - **Multi-Stage Build:** Stage 1 (`node:24-alpine`) mengompilasi aset frontend produksi, dan Stage 2 (`python:3.13-slim`) menyajikan API FastAPI serta file statis SPA secara same-origin.
+   - **Persistent Storage:** Database SQLite disimpan di volume Docker `finance_tracker_data` (`/app/data`), dan file backup disimpan di `finance_tracker_backups` (`/app/backups`). Data tetap aman saat container di-restart atau di-rebuild.
+   - **Auto-Migration:** Entrypoint container otomatis menjalankan `python -m scripts.migrate` dan `python -m scripts.seed` sebelum server dimulai.
+   - **Single-Instance Enforced:** Docker Compose mengunci `replicas: 1` demi menjaga konsistensi transaksi file SQLite.
 
 ### Budget Bulanan (API)
 

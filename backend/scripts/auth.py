@@ -44,6 +44,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Password baru (jika tidak diisi, prompt interaktif akan muncul).",
     )
     set_pwd_parser.add_argument(
+        "--env",
+        action="store_true",
+        help="Baca password baru dari environment variable APP_OWNER_PASSWORD.",
+    )
+    set_pwd_parser.add_argument(
         "--owner-id",
         type=int,
         default=1,
@@ -54,12 +59,22 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(args: Sequence[str] | None = None) -> int:
+    import os
+
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
     if parsed_args.command == "set-password":
         password = parsed_args.password
-        if not password:
+        if parsed_args.env:
+            password = os.environ.get("APP_OWNER_PASSWORD")
+            if not password:
+                print(
+                    "Error: Environment variable APP_OWNER_PASSWORD tidak diset atau kosong.",
+                    file=sys.stderr,
+                )
+                return 1
+        elif not password:
             password = getpass.getpass("Masukkan password baru (min 8 karakter): ")
             confirm = getpass.getpass("Konfirmasi password baru: ")
             if password != confirm:
