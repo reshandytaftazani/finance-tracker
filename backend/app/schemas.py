@@ -217,6 +217,34 @@ class AnalyticsInsights(BaseModel):
     narratives: list[str]
 
 
+class HistoricalMonthExpense(BaseModel):
+    month: int = Field(ge=1, le=12)
+    year: int = Field(ge=1, le=9999)
+    expense: str
+    transaction_count: int = Field(ge=0)
+
+
+class BacktestEvaluation(BaseModel):
+    has_backtest: bool
+    test_points_count: int = Field(ge=0)
+    ma_mae: str | None = None
+    naive_mae: str | None = None
+    better_model: Literal["ma3", "naive", "tie"] | None = None
+    explanation: str
+
+
+class AnalyticsForecast(BaseModel):
+    month: int = Field(ge=1, le=12)
+    year: int = Field(ge=1, le=9999)
+    status: Literal["sufficient_data", "insufficient_data"]
+    message: str
+    has_sufficient_data: bool
+    historical_months: list[HistoricalMonthExpense]
+    forecast_expense: str | None = None
+    baseline_expense: str | None = None
+    evaluation: BacktestEvaluation | None = None
+
+
 BudgetMonth = Annotated[int, Field(strict=True, ge=1, le=12)]
 BudgetYear = Annotated[int, Field(strict=True, ge=1, le=9999)]
 

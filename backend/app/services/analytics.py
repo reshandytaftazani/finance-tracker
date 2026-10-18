@@ -8,10 +8,13 @@ from sqlmodel import Session, select
 from app.models import Category, Transaction
 from app.schemas import (
     AnalyticsByCategory,
+    AnalyticsForecast,
     AnalyticsInsights,
     AnalyticsSummary,
+    BacktestEvaluation,
     CashFlowInsight,
     CategoryExpense,
+    HistoricalMonthExpense,
     MoMComparison,
     TopCategoryInsight,
 )
@@ -195,3 +198,188 @@ def monthly_insights(
         cash_flow=cash_flow,
         narratives=narratives,
     )
+
+
+def previous_calendar_month(month: int, year: int) -> tuple[int, int]:
+    return (12, year - 1) if month == 1 else (month - 1, year)
+
+
+def get_prior_months(month: int, year: int, count: int) -> list[tuple[int, int]]:
+    """Returns prior calendar months in chronological order: [T-count, ..., T-1]."""
+    cur_m, cur_y = month, year
+    result: list[tuple[int, int]] = []
+    for _ in range(count):
+        cur_m, cur_y = previous_calendar_month(cur_m, cur_y)
+        result.append((cur_m, cur_y))
+    result.reverse()
+    return result
+
+
+def monthly_transaction_stats(
+    session: Session, owner_id: int, month: int, year: int
+) -> tuple[int, int]:
+    """Returns (expense_rupiah, total_transaction_count)."""
+    rows = session.exec(
+        select(Transaction.type, Transaction.amount_rupiah).where(
+            *monthly_predicates(owner_id, month, year)
+        )
+    )
+    count = 0
+    expense = 0
+    for kind, amount in rows:
+        count += 1
+        if kind == "expense":
+            expense += amount
+    return expense, count
+
+
+def exact_round_div(numerator: int, denominator: int) -> int:
+    """Exact half-up integer division: round(numerator / denominator)."""
+    if denominator <= 0:
+        return 0
+    return (2 * numerator + denominator) // (2 * denominator)
+
+
+def monthly_forecast(
+    session: Session, owner_id: int, month: int, year: int
+) -> AnalyticsForecast:
+    prior_3 = get_prior_months(month, year, 3)
+
+    # 1. Fetch data for the 3 months directly preceding the target month
+    historical_months: list[HistoricalMonthExpense] = []
+    has_sufficient = True
+    expenses: list[int] = []
+
+    for pm, py in prior_3:
+        exp, cnt = monthly_transaction_stats(session, owner_id, pm, py)
+        historical_months.append(
+            HistoricalMonthExpense(
+                month=pm,
+                year=py,
+                expense=str(exp),
+                transaction_count=cnt,
+            )
+        )
+        if cnt == 0:
+            has_sufficient = False
+        expenses.append(exp)
+
+    if not has_sufficient:
+        return AnalyticsForecast(
+            month=month,
+            year=year,
+            status="insufficient_data",
+            message="Dibutuhkan minimal 3 bulan riwayat transaksi berturut-turut untuk menghasilkan proyeksi.",
+            has_sufficient_data=False,
+            historical_months=historical_months,
+            forecast_expense=None,
+            baseline_expense=None,
+            evaluation=None,
+        )
+
+    # 2. Compute 3-Month Moving Average & Naive Baseline
+    # prior_3 is [T-3, T-2, T-1], expenses is [E3, E2, E1]
+    e_sum = sum(expenses)
+    ma3_forecast = exact_round_div(e_sum, 3)
+    baseline_naive = expenses[-1]  # E_{t-1}
+
+    # 3. Temporal Backtesting (Strictly on history prior to target month)
+    earliest_tx = session.exec(
+        select(Transaction.date)
+        .where(Transaction.owner_id == owner_id)
+        .order_by(Transaction.date.asc())
+        .limit(1)
+    ).first()
+
+    backtest_eval: BacktestEvaluation | None = None
+    if earliest_tx is not None:
+        start_year = earliest_tx.year
+        start_month = earliest_tx.month
+
+        # Collect candidate historical evaluation months strictly before target
+        candidate_test_months: list[tuple[int, int]] = []
+        cur_m, cur_y = previous_calendar_month(month, year)
+        while True:
+            if cur_y < start_year or (cur_y == start_year and cur_m < start_month):
+                break
+            candidate_test_months.append((cur_m, cur_y))
+            if len(candidate_test_months) >= 12:
+                break
+            cur_m, cur_y = previous_calendar_month(cur_m, cur_y)
+
+        # For each candidate test month k, check if k has 3 preceding months with data
+        ma_errors: list[int] = []
+        naive_errors: list[int] = []
+
+        for tm, ty in candidate_test_months:
+            k_prior_3 = get_prior_months(tm, ty, 3)
+            k_expenses: list[int] = []
+            k_sufficient = True
+            for kpm, kpy in k_prior_3:
+                k_exp, k_cnt = monthly_transaction_stats(session, owner_id, kpm, kpy)
+                if k_cnt == 0:
+                    k_sufficient = False
+                    break
+                k_expenses.append(k_exp)
+
+            if k_sufficient and len(k_expenses) == 3:
+                actual_exp, actual_cnt = monthly_transaction_stats(session, owner_id, tm, ty)
+                if actual_cnt > 0:
+                    k_ma3_pred = exact_round_div(sum(k_expenses), 3)
+                    k_naive_pred = k_expenses[-1]
+                    ma_errors.append(abs(actual_exp - k_ma3_pred))
+                    naive_errors.append(abs(actual_exp - k_naive_pred))
+
+        if len(ma_errors) > 0:
+            test_count = len(ma_errors)
+            ma_mae = exact_round_div(sum(ma_errors), test_count)
+            naive_mae = exact_round_div(sum(naive_errors), test_count)
+            if ma_mae < naive_mae:
+                better = "ma3"
+                explanation = (
+                    f"Model Moving Average 3-bulan lebih akurat dengan rata-rata galat (MAE) "
+                    f"Rp {ma_mae} dibanding baseline naive Rp {naive_mae} pada {test_count} periode historis."
+                )
+            elif naive_mae < ma_mae:
+                better = "naive"
+                explanation = (
+                    f"Baseline naive (bulan sebelumnya) lebih akurat dengan rata-rata galat (MAE) "
+                    f"Rp {naive_mae} dibanding Moving Average Rp {ma_mae} pada {test_count} periode historis."
+                )
+            else:
+                better = "tie"
+                explanation = (
+                    f"Performa Moving Average dan baseline naive seimbang dengan rata-rata galat (MAE) "
+                    f"Rp {ma_mae} pada {test_count} periode historis."
+                )
+
+            backtest_eval = BacktestEvaluation(
+                has_backtest=True,
+                test_points_count=test_count,
+                ma_mae=str(ma_mae),
+                naive_mae=str(naive_mae),
+                better_model=better,
+                explanation=explanation,
+            )
+        else:
+            backtest_eval = BacktestEvaluation(
+                has_backtest=False,
+                test_points_count=0,
+                ma_mae=None,
+                naive_mae=None,
+                better_model=None,
+                explanation="Dibutuhkan minimal 4 bulan data representatif untuk evaluasi backtest temporal.",
+            )
+
+    return AnalyticsForecast(
+        month=month,
+        year=year,
+        status="sufficient_data",
+        message="Proyeksi berhasil dihitung menggunakan rata-rata bergerak 3 bulan.",
+        has_sufficient_data=True,
+        historical_months=historical_months,
+        forecast_expense=str(ma3_forecast),
+        baseline_expense=str(baseline_naive),
+        evaluation=backtest_eval,
+    )
+
