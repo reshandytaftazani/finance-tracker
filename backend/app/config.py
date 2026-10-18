@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     )
 
     name: str = "Personal Finance Tracker"
+    version: str = "1.0.0"
     env: str = "local"
     debug: bool = False
     auth_enabled: bool = False

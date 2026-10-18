@@ -8,9 +8,9 @@ Roadmap dan catatan task tersimpan di `PLANNING.local.md` pada salinan lokal dan
 
 ---
 
-## Status Proyek
+## Status Proyek (Versi v1.0.0)
 
-Proyek sedang membangun fondasi MVP:
+Versi `v1.0.0` telah dirilis secara stabil mencakup seluruh alur kerja finansial:
 - **Backend:** FastAPI, database SQLite dengan foreign key aktif, synchronous session per request, proteksi host dan origin pada request mutasi, health endpoint, dan pengujian otomatis via pytest.
 - **Frontend:** React, TypeScript, dan Vite dengan type-checking, linter, serta konfigurasi build produksi.
 - **Model & validasi:** model Owner/Category/Transaction dengan constraint ownership, nominal rupiah integer, normalisasi nama, timestamp UTC, dan schema create/update/read. API nominal menggunakan string digit; client tidak dapat mengirim `owner_id` atau `normalized_name`.
