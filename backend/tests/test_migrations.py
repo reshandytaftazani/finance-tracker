@@ -60,6 +60,7 @@ def test_empty_database_upgrade_twice_matches_models_and_has_no_seed_data(
         "categories",
         "transactions",
         "budgets",
+        "user_sessions",
     }
     assert snapshot(empty_engine) == {
         "owners": [],
@@ -70,7 +71,7 @@ def test_empty_database_upgrade_twice_matches_models_and_has_no_seed_data(
         migration = MigrationContext.configure(
             connection, opts={"compare_type": True, "compare_server_default": True}
         )
-        assert migration.get_current_heads() == ("0002_budgets",)
+        assert migration.get_current_heads() == ("0003_owner_password_and_sessions",)
         assert compare_metadata(migration, SQLModel.metadata) == []
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
@@ -84,7 +85,7 @@ def test_migration_constraints_and_index_definitions_match_models(
         SQLModel.metadata.create_all(reference)
         expected = inspect(reference)
         actual = inspect(migrated_engine)
-        for table in ("owners", "categories", "transactions", "budgets"):
+        for table in ("owners", "categories", "transactions", "budgets", "user_sessions"):
             for method in (
                 "get_pk_constraint",
                 "get_foreign_keys",
@@ -463,7 +464,7 @@ def test_actual_commands_and_backend_restart_keep_fixture_transactions(tmp_path)
         return result.stdout
 
     run("-m", "scripts.migrate")
-    assert "0002_budgets" in run("-m", "alembic", "current")
+    assert "0003_owner_password_and_sessions" in run("-m", "alembic", "current")
     run("-m", "alembic", "check")
     assert "dibuat" in run("-m", "scripts.seed")
     assert "tidak diubah" in run("-m", "scripts.seed")

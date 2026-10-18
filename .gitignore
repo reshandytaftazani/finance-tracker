@@ -20,6 +20,7 @@ dist/
 .jupyter/
 ml/notebooks/.ipynb_checkpoints/
 graphify-out/
+.commandcode/
 
 backups/
 backend/backups/

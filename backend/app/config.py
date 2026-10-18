@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     database_url: str = "sqlite:///./data/finance.db"
     frontend_origin: str = "http://localhost:5173"
     allowed_hosts: list[str] = ["127.0.0.1", "localhost", "testserver"]
+    auth_enabled: bool = False
+    session_cookie_name: str = "finance_session"
+    session_expire_days: int = 7
+    session_cookie_secure: bool = False
+    session_cookie_samesite: str = "lax"
 
     @field_validator("host")
     @classmethod

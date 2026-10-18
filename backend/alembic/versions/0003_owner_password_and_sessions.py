@@ -1,6 +1,7 @@
 """Add owner password_hash and user_sessions table."""
 
 import sqlalchemy as sa
+
 from alembic import context, op
 
 revision = "0003_owner_password_and_sessions"
@@ -59,8 +60,19 @@ def downgrade() -> None:
         raise RuntimeError(
             "Offline downgrade cannot verify data safety; restore a verified backup instead"
         )
+    connection = op.get_bind()
+    if (
+        connection.execute(sa.text("SELECT 1 FROM user_sessions LIMIT 1")).first()
+        is not None
+        or connection.execute(
+            sa.text("SELECT 1 FROM owners WHERE password_hash IS NOT NULL LIMIT 1")
+        ).first()
+        is not None
+    ):
+        raise RuntimeError(
+            "Downgrade would delete auth or session data; restore a verified backup instead"
+        )
     op.drop_index("ix_user_sessions_expires_at", table_name="user_sessions")
     op.drop_index("ix_user_sessions_owner_id", table_name="user_sessions")
     op.drop_table("user_sessions")
-    with op.batch_alter_table("owners") as batch_op:
-        batch_op.drop_column("password_hash")
+    op.drop_column("owners", "password_hash")

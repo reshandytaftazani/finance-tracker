@@ -277,7 +277,7 @@ def test_orm_budget_rejects_non_integer_values(api, field, value):
 
 
 def test_upgrade_from_populated_initial_revision_preserves_rows_and_backups(tmp_path):
-    from app.models import Category, Owner
+    from app.models import Category
 
     engine = create_db_engine(f"sqlite:///{(tmp_path / 'old.db').as_posix()}")
     config = alembic_config()
@@ -285,9 +285,11 @@ def test_upgrade_from_populated_initial_revision_preserves_rows_and_backups(tmp_
         with engine.begin() as connection:
             config.attributes["connection"] = connection
             command.upgrade(config, "0001_initial")
+            connection.exec_driver_sql(
+                "INSERT INTO owners (id, display_name, created_at, updated_at) "
+                "VALUES (1, 'Lokal', '2026-01-01 00:00:00', '2026-01-01 00:00:00')"
+            )
         with Session(engine) as session:
-            session.add(Owner(id=1, display_name="Lokal"))
-            session.commit()
             session.add(Category(id=2**40, owner_id=1, name="Makanan", type="expense"))
             session.commit()
             session.add(
@@ -317,12 +319,14 @@ def test_upgrade_from_populated_initial_revision_preserves_rows_and_backups(tmp_
             ).fetchall() == [(2**41, 9999999999999)]
         with engine.connect() as connection:
             for table, rows in before.items():
-                assert (
-                    connection.exec_driver_sql(
-                        f"SELECT * FROM {table} ORDER BY id"
-                    ).all()
-                    == rows
-                )
+                current_rows = connection.exec_driver_sql(
+                    f"SELECT * FROM {table} ORDER BY id"
+                ).all()
+                if table == "owners":
+                    assert [r[:-1] for r in current_rows] == rows
+                    assert all(r[-1] is None for r in current_rows)
+                else:
+                    assert current_rows == rows
             assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
             assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert "budgets" in inspect(engine).get_table_names()

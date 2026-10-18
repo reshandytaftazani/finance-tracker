@@ -6,32 +6,60 @@ Client requests cannot supply, choose, or override owner_id.
 
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, status
-from sqlmodel import Session
+from fastapi import Depends, HTTPException, Request, status
+from sqlmodel import Session, select
 
+from app.auth import hash_token
 from app.config import Settings, get_settings
 from app.db import get_session
-from app.models import Owner
+from app.models import Owner, UserSession, utc_now
 
 LOCAL_OWNER_ID: int = 1
 
 
 def get_current_owner_id(
     settings: Annotated[Settings, Depends(get_settings)],
+    request: Request = None,  # type: ignore[assignment]
+    session: Annotated[Session, Depends(get_session)] = None,  # type: ignore[assignment]
 ) -> int:
     """Resolve active owner ID strictly on the server side.
 
-    In local mode, ownership is fixed to LOCAL_OWNER_ID (1) initialized during bootstrap.
-    If the application environment is configured for non-local access without authentication,
-    the server rejects the request with 401 Unauthorized.
+    In local mode with auth disabled, ownership is fixed to LOCAL_OWNER_ID (1).
+    When auth is enabled (or environment is non-local), a valid session cookie
+    must be provided and active.
     """
-    if settings.env == "local":
+    if not settings.auth_enabled and settings.env == "local":
         return LOCAL_OWNER_ID
 
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Authentication required for non-local environment",
-    )
+    if request is None or session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    raw_token = request.cookies.get(settings.session_cookie_name)
+    if not raw_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    token_h = hash_token(raw_token)
+    now = utc_now()
+    user_session = session.exec(
+        select(UserSession).where(
+            UserSession.token_hash == token_h,
+            UserSession.expires_at > now,
+        )
+    ).first()
+
+    if user_session is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session",
+        )
+
+    return user_session.owner_id
 
 
 def get_current_owner(

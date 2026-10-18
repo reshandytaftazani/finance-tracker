@@ -83,15 +83,15 @@ def test_client_cannot_override_owner_id() -> None:
     assert response.json()["assigned_owner_id"] == LOCAL_OWNER_ID
 
 
-def test_no_public_auth_or_user_routes_in_local_mvp() -> None:
-    """Verify that no register, login, profile, user, or role routes are exposed."""
+def test_no_public_registration_or_multiuser_routes() -> None:
+    """Verify that no public register, profile, user, or role routes are exposed."""
     client = TestClient(app)
     openapi = client.get("/openapi.json").json()
     paths = list(openapi.get("paths", {}).keys())
-    prohibited_keywords = ["auth", "register", "login", "profile", "user", "role"]
+    prohibited_keywords = ["register", "profile", "user", "role"]
     for path in paths:
         for keyword in prohibited_keywords:
-            assert keyword not in path.lower(), f"Unexpected route {path} found in MVP app"
+            assert keyword not in path.lower(), f"Unexpected route {path} found in app"
 
 
 @pytest.mark.parametrize("host", ["127.0.0.1", "127.0.0.2", "::1"])
