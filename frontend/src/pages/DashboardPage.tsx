@@ -26,6 +26,9 @@ import {
 } from "../api/analytics";
 import { fetchCategories } from "../api/transactions";
 import { Money } from "../components/Money";
+import { ExpenseChart } from "../components/ExpenseChart";
+import { AllocationPieChart } from "../components/AllocationPieChart";
+import { ExpenseForecast } from "../components/ExpenseForecast";
 import { formatDate, formatRupiah } from "../lib/formatters";
 import { jakartaToday, monthRange } from "../lib/transactions";
 
@@ -116,18 +119,12 @@ export const DashboardPage: React.FC = () => {
       ? { label: "Defisit", style: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800" }
       : { label: "Seimbang", style: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700" };
 
-  // Use one response for both the numerator and denominator. Summary may
-  // still be loading, fail, or reflect a different snapshot after a mutation.
-  const totalExpenseBigInt = (breakdownQuery.data?.items ?? []).reduce(
-    (total, item) => total + BigInt(item.expense),
-    0n
-  );
   const summaryUnavailable = !validMonth || summaryQuery.isError || !summaryQuery.data;
 
   const defaultMonth = jakartaToday().slice(0, 7);
 
   return (
-    <div className="space-y-8">
+    <div className="finance-dashboard space-y-8">
       {/* Page Header */}
       <header className="finance-page-header">
         <div>
@@ -152,7 +149,7 @@ export const DashboardPage: React.FC = () => {
               max="9999-12"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="min-h-11 text-sm font-medium bg-transparent border-none text-[var(--foreground)] cursor-pointer focus:outline-none"
+              className="min-h-11 text-sm font-medium bg-transparent border-none text-[var(--foreground)] cursor-pointer"
               aria-label="Pilih bulan dan tahun periode dashboard"
               aria-invalid={!validMonth}
               aria-describedby={!validMonth ? "dashboard-period-error" : undefined}
@@ -274,10 +271,10 @@ export const DashboardPage: React.FC = () => {
         {/* Arus Kas Bersih */}
         <article className="finance-panel finance-metric finance-metric-main">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">
+            <span className="text-sm font-semibold text-teal-900 dark:text-teal-200">
               Arus Kas Bersih
             </span>
-            <div className="p-1.5 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
+            <div className="p-1.5 rounded-md bg-teal-100 text-teal-700 dark:bg-teal-900/60 dark:text-teal-300">
               <Wallet className="w-4 h-4" aria-hidden="true" />
             </div>
           </div>
@@ -307,19 +304,25 @@ export const DashboardPage: React.FC = () => {
                 )}
               </div>
             )}
-            <p className="text-xs text-blue-800/90 dark:text-blue-300/80 mt-2 font-medium">Pemasukan dikurangi pengeluaran</p>
+            <p className="text-xs text-teal-800/90 dark:text-teal-300/80 mt-2 font-medium">Pemasukan dikurangi pengeluaran</p>
           </div>
         </article>
       </section>
 
       {/* Sorotan & Analisis Keuangan (Rule-Based Insights) */}
+      {validMonth && summaryQuery.isSuccess && (
+        <section className="finance-panel finance-chart-panel" aria-label="Chart riwayat pengeluaran">
+          <ExpenseChart key={month} history={[...(forecastQuery.isSuccess ? forecastQuery.data.historical_months : []), { month: parsedMonth, year: parsedYear, expense: summaryQuery.data.expense, transaction_count: null }]} />
+        </section>
+      )}
+
       <section
         aria-label="Sorotan dan Analisis Keuangan"
-        className="finance-panel p-5 sm:p-6 mb-6"
+        className="finance-panel finance-insights p-5 sm:p-6 mb-6"
       >
         <div className="finance-panel-heading flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+            <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" aria-hidden="true" />
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
               Sorotan & Analisis Periode Ini
             </h2>
@@ -353,7 +356,7 @@ export const DashboardPage: React.FC = () => {
             {/* Tiga Kartu Ringkasan Aturan */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 1. Perbandingan Bulan-ke-Bulan (MoM) */}
-              <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex flex-col justify-between">
+              <div className="finance-insight-stat flex flex-col justify-between">
                 <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
                   <span>Tren Pengeluaran (vs Bulan Lalu)</span>
                   {insightsQuery.data.comparison.direction === "up" ? (
@@ -398,10 +401,10 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               {/* 2. Kategori Pengeluaran Terbesar */}
-              <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex flex-col justify-between">
+              <div className="finance-insight-stat flex flex-col justify-between">
                 <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
                   <span>Kategori Terbesar</span>
-                  <PieChart className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+                  <PieChart className="w-4 h-4 text-teal-600 dark:text-teal-400" aria-hidden="true" />
                 </div>
                 {insightsQuery.data.top_category.has_data && insightsQuery.data.top_category.category_name ? (
                   <div>
@@ -409,7 +412,7 @@ export const DashboardPage: React.FC = () => {
                       <span className="text-base font-bold text-slate-900 dark:text-slate-100 truncate">
                         {insightsQuery.data.top_category.category_name}
                       </span>
-                      <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
+                      <span className="text-xs font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded border border-teal-200 dark:border-teal-800">
                         {insightsQuery.data.top_category.percentage_of_total}%
                       </span>
                     </div>
@@ -425,7 +428,7 @@ export const DashboardPage: React.FC = () => {
               </div>
 
               {/* 3. Rasio Tabungan / Status Kas */}
-              <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex flex-col justify-between">
+              <div className="finance-insight-stat flex flex-col justify-between">
                 <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
                   <span>Kesehatan Arus Kas</span>
                   <Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
@@ -461,8 +464,8 @@ export const DashboardPage: React.FC = () => {
 
             {/* Poin Kesimpulan Naratif */}
             {insightsQuery.data.narratives.length > 0 && (
-              <div className="p-3.5 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 flex items-start gap-2.5">
-                <Lightbulb className="w-4 h-4 text-blue-700 dark:text-blue-400 mt-0.5 shrink-0" aria-hidden="true" />
+              <div className="p-3.5 rounded-lg bg-teal-50/60 dark:bg-teal-950/30 border border-teal-100 dark:border-teal-900/50 flex items-start gap-2.5">
+                <Lightbulb className="w-4 h-4 text-teal-700 dark:text-teal-400 mt-0.5 shrink-0" aria-hidden="true" />
                 <ul className="text-xs text-slate-700 dark:text-slate-300 space-y-1 list-disc list-inside">
                   {insightsQuery.data.narratives.map((narration, idx) => (
                     <li key={idx} className="leading-relaxed">
@@ -483,13 +486,13 @@ export const DashboardPage: React.FC = () => {
       >
         <div className="finance-panel-heading flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+            <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-400" aria-hidden="true" />
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              Proyeksi Pengeluaran (Eksperimen Forecasting)
+              Proyeksi Pengeluaran
             </h2>
           </div>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded border bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800">
-            Moving Average 3-Bulan
+          <span className="text-xs font-semibold px-2 py-0.5 rounded border bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 border-teal-200 dark:border-teal-800">
+            Estimasi bulanan
           </span>
         </div>
 
@@ -512,117 +515,8 @@ export const DashboardPage: React.FC = () => {
           </div>
         ) : !forecastQuery.data ? (
           <p className="text-sm text-slate-500 dark:text-slate-400 py-2">Data proyeksi tidak tersedia.</p>
-        ) : forecastQuery.data.status === "insufficient_data" ? (
-          <div className="p-4 rounded-xl border border-amber-200/80 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 space-y-2">
-            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-medium text-sm">
-              <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true" />
-              <span>Data Riwayat Belum Cukup untuk Proyeksi</span>
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              {forecastQuery.data.message} Sistem tidak menghasilkan proyeksi spekulatif ketika riwayat transaksi kurang dari 3 bulan berurutan.
-            </p>
-            {forecastQuery.data.historical_months.length > 0 && (
-              <div className="pt-2 border-t border-amber-200/50 dark:border-amber-900/40 flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                <span className="font-medium text-slate-700 dark:text-slate-300">Pemeriksaan 3 bulan sebelumnya:</span>
-                {forecastQuery.data.historical_months.map((h, idx) => (
-                  <span key={idx} className="bg-[var(--card)] px-2 py-0.5 rounded border border-amber-300 dark:border-amber-800 text-[var(--foreground)] font-mono text-[11px]">
-                    Bulan {h.month}/{h.year}: {h.transaction_count} transaksi ({formatRupiah(h.expense)})
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
         ) : (
-          <div className="space-y-4 pt-1">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* 1. Proyeksi Moving Average */}
-              <div className="p-4 rounded-xl border border-indigo-200/80 dark:border-indigo-900/50 bg-indigo-50/40 dark:bg-indigo-950/30 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">
-                    <span>Estimasi Rata-rata Bergerak</span>
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
-                  </div>
-                  <div className="text-xl font-bold text-indigo-950 dark:text-indigo-100">
-                    {formatRupiah(forecastQuery.data.forecast_expense ?? "0")}
-                  </div>
-                </div>
-                <p className="text-xs text-indigo-700/80 dark:text-indigo-300/80 mt-2">
-                  Dihitung dari rata-rata pengeluaran 3 bulan representatif terakhir.
-                </p>
-              </div>
-
-              {/* 2. Baseline Naive */}
-              <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    <span>Baseline Naive (Bulan Lalu)</span>
-                    <RotateCcw className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
-                  </div>
-                  <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                    {formatRupiah(forecastQuery.data.baseline_expense ?? "0")}
-                  </div>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
-                  Pengeluaran aktual pada 1 bulan sebelum periode target.
-                </p>
-              </div>
-
-              {/* 3. Evaluasi Temporal Backtest */}
-              <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-                    <span>Akurasi Backtest Historis</span>
-                    {forecastQuery.data.evaluation?.has_backtest ? (
-                      <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
-                        forecastQuery.data.evaluation.better_model === "ma3"
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
-                          : forecastQuery.data.evaluation.better_model === "naive"
-                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
-                          : "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
-                      }`}>
-                        {forecastQuery.data.evaluation.better_model === "ma3"
-                          ? "MA-3 Unggul"
-                          : forecastQuery.data.evaluation.better_model === "naive"
-                          ? "Naive Unggul"
-                          : "Seimbang"}
-                      </span>
-                    ) : (
-                      <Minus className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
-                    )}
-                  </div>
-                  {forecastQuery.data.evaluation?.has_backtest ? (
-                    <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
-                      <div>MAE MA-3: <span className="font-semibold">{formatRupiah(forecastQuery.data.evaluation.ma_mae ?? "0")}</span></div>
-                      <div>MAE Naive: <span className="font-semibold">{formatRupiah(forecastQuery.data.evaluation.naive_mae ?? "0")}</span></div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      {forecastQuery.data.evaluation?.explanation ?? "Data belum mencapai 4 bulan untuk split backtest."}
-                    </p>
-                  )}
-                </div>
-                {forecastQuery.data.evaluation?.has_backtest && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 line-clamp-2">
-                    {forecastQuery.data.evaluation.explanation}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Riwayat 3 Bulan Pengeluaran */}
-            {forecastQuery.data.historical_months.length > 0 && (
-              <div className="p-3 rounded-lg bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
-                <span className="font-medium text-slate-700 dark:text-slate-300">Data Historis Pembentuk:</span>
-                <div className="flex flex-wrap gap-2">
-                  {forecastQuery.data.historical_months.map((h, idx) => (
-                    <span key={idx} className="bg-[var(--card)] px-2 py-0.5 rounded border border-[var(--border)] text-[var(--foreground)]">
-                      Bulan {h.month}/{h.year}: <strong className="font-semibold text-[var(--foreground)]">{formatRupiah(h.expense)}</strong> ({h.transaction_count} tx)
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <ExpenseForecast key={month} forecast={forecastQuery.data} summary={summaryQuery.isSuccess ? summaryQuery.data : undefined} period={month} />
         )}
       </section>
 
@@ -643,7 +537,7 @@ export const DashboardPage: React.FC = () => {
               </div>
               <Link
                 to="/transactions"
-                className="min-h-11 text-sm font-medium text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline inline-flex items-center gap-2"
+                className="min-h-11 text-sm font-medium text-teal-700 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-300 hover:underline inline-flex items-center gap-2"
               >
                 Lihat Semua
                 <ArrowRight aria-hidden="true" className="w-3.5 h-3.5" />
@@ -682,7 +576,7 @@ export const DashboardPage: React.FC = () => {
               </div>
             ) : !recentQuery.data || recentQuery.data.length === 0 ? (
               <div className="py-12 flex flex-col items-center justify-center text-center">
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/60 rounded-xl text-blue-700 dark:text-blue-300 mb-4">
+                <div className="p-3 bg-teal-50 dark:bg-teal-950/60 rounded-xl text-teal-700 dark:text-teal-300 mb-4">
                   <Receipt aria-hidden="true" className="w-6 h-6" />
                 </div>
                 <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100">
@@ -798,53 +692,7 @@ export const DashboardPage: React.FC = () => {
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
-                {breakdownQuery.data.items.map((item) => {
-                  let itemExpenseBigInt = 0n;
-                  try {
-                    itemExpenseBigInt = BigInt(item.expense);
-                  } catch {
-                    itemExpenseBigInt = 0n;
-                  }
-
-                  const percentageNumber =
-                    totalExpenseBigInt > 0n
-                      ? Number((itemExpenseBigInt * 1000n) / totalExpenseBigInt) / 10
-                      : 0;
-                  const percentageFormatted = `${percentageNumber.toFixed(1)}%`;
-
-                  return (
-                    <div key={item.category_id} className="space-y-1.5">
-                      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                        <span className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-40">
-                          {item.category_name}
-                        </span>
-                         <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                            {percentageFormatted}
-                          </span>
-                          <Money amount={item.expense} className="font-medium text-slate-900 dark:text-slate-100" />
-                        </div>
-                      </div>
-                      <div
-                        className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden"
-                        role="progressbar"
-                        aria-valuenow={percentageNumber}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-label={`Alokasi untuk ${item.category_name}: ${percentageFormatted} (${formatRupiah(item.expense)})`}
-                      >
-                        <div
-                          className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full"
-                          style={{
-                            width: `${Math.min(100, Math.max(2, percentageNumber))}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <AllocationPieChart key={month} items={breakdownQuery.data.items} />
             )}
           </div>
 

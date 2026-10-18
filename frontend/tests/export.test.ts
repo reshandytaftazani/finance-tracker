@@ -48,3 +48,13 @@ test("export HTTP/network and unexpected content errors do not become downloads"
   t.mock.method(globalThis, "fetch", async () => new Response("<html>fallback</html>", { headers: { "Content-Type": "text/html" } }));
   await assert.rejects(api.exportTransactions(filters), /CSV/i);
 });
+
+
+test("all-month export omits dates and pagination and keeps other filters", async (t) => {
+  t.mock.method(globalThis, "fetch", async (url) => {
+    assert.deepEqual(Object.fromEntries(new URL(String(url)).searchParams), { type: "expense", category_id: "1", search: "makan" });
+    return new Response("all months", { headers: { "Content-Type": "text/csv" } });
+  });
+  const csv = await api.exportTransactions({ month: "all", type: "expense", category_id: "1", search: "makan", page: 4 });
+  assert.equal(await csv.text(), "all months");
+});

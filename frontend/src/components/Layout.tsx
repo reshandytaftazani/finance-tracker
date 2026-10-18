@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Activity, ArrowLeftRight, LayoutDashboard, LogOut, ShieldCheck, Wallet } from "lucide-react";
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { flushSync } from "react-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { fetchHealth } from "../api/client";
 import { useAuth } from "../lib/authContext";
 import { ThemeToggle } from "./ThemeToggle";
@@ -12,6 +13,7 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { auth, logout } = useAuth();
   const isLoginPage = location.pathname === "/login";
 
@@ -31,7 +33,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       ];
 
   return (
-    <div className="finance-app min-h-screen flex flex-col text-[var(--foreground)] bg-[var(--background)]">
+    <div className="finance-app min-h-screen flex flex-col text-[var(--foreground)] bg-[var(--background)]" onClickCapture={(event) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const anchor = (event.target as Element).closest<HTMLAnchorElement>("a[href]");
+      if (!anchor || anchor.target || anchor.hasAttribute("download") || anchor.origin !== window.location.origin || anchor.hash || anchor.pathname === location.pathname) return;
+      if (!document.startViewTransition || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      event.preventDefault();
+      document.startViewTransition(() => { flushSync(() => navigate(anchor.pathname + anchor.search)); });
+    }}>
       <a href="#main-content" className="skip-link" onClick={() => document.getElementById("main-content")?.focus()}>Lewati ke konten utama</a>
       {/* Top Navigation */}
       <header className="finance-topbar">
@@ -39,6 +48,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="finance-topbar-inner">
             <div className="flex min-w-0 items-center gap-8">
               <div className="finance-brand">
+                <span className="finance-brand-mark" aria-hidden="true"><Wallet size={21} strokeWidth={1.8} /></span>
                 <span>
                   Personal Finance Tracker
                 </span>
@@ -138,7 +148,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <main id="main-content" tabIndex={-1} className="finance-shell finance-main scroll-mt-48 flex-1 min-w-0">
-        {children}
+        <div key={location.pathname} className="finance-route">{children}</div>
       </main>
 
       {/* Footer */}

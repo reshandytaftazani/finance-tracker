@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { fetchBudgetStatus } from "../api/budgets";
 import { fetchCategories } from "../api/transactions";
 import { BudgetForm } from "../components/BudgetForm";
+import { AnimatedRegion } from "../components/AnimatedRegion";
 import { DeleteBudgetDialog } from "../components/DeleteBudgetDialog";
 import { Money } from "../components/Money";
 import { budgetProgress, budgetStatusLabels } from "../lib/budgets";
@@ -63,9 +64,9 @@ export function BudgetPage() {
     </section>
     {categories.isPending && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Memuat kategori…</p>}
     {categories.isError && <div role="alert" className="rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-4 text-sm text-rose-800 dark:text-rose-200"><p>Kategori gagal dimuat. {categories.error.message}</p><button type="button" className="transaction-button mt-3" disabled={categories.isFetching} onClick={() => void categories.refetch()}>Coba lagi kategori</button></div>}
-    {editor && <BudgetForm key={editor.budget?.id ?? "new"} {...editor} categories={categories.data ?? []} categoriesReady={categories.isSuccess} onCancel={closeEditor} onSaved={(savedPeriod) => {
+    <AnimatedRegion>{editor && <BudgetForm key={editor.budget?.id ?? "new"} {...editor} categories={categories.data ?? []} categoriesReady={categories.isSuccess} onCancel={closeEditor} onSaved={(savedPeriod) => {
       setPeriod(savedPeriod); setNotice(`Budget berhasil ${editor.budget ? "diperbarui" : "ditambahkan"}. Menampilkan bulan budget yang disimpan.`); closeEditor();
-    }} />}
+    }} />}</AnimatedRegion>
     {valid && <section aria-labelledby="budget-progress-title" className="finance-panel overflow-hidden">
       <div className="border-b border-slate-200 dark:border-slate-800 px-5 py-4"><h2 id="budget-progress-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100">Progress budget · {periodLabel}</h2></div>
       {status.isError ? <div role="alert" className="p-5 text-sm text-rose-700 dark:text-rose-400"><p>Budget gagal dimuat. {status.error.message}</p><p className="mt-1">Nominal tidak ditampilkan karena data terbaru belum tersedia.</p><button type="button" disabled={status.isFetching} className="transaction-button mt-3" onClick={() => void status.refetch()}>Coba lagi budget</button></div>

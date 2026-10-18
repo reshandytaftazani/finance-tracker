@@ -94,7 +94,7 @@ export async function fetchCategories(signal?: AbortSignal): Promise<Category[]>
 }
 
 function filterParams(filters: TransactionFilters): URLSearchParams {
-  const range = monthRange(filters.month);
+  const range = filters.month === "all" ? {} : monthRange(filters.month);
   if (!range) throw new Error("Pilih bulan yang valid.");
   const params = new URLSearchParams(range);
   if (filters.type !== "all") params.set("type", filters.type);

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { exportTransactions, fetchCategories, fetchTransactions } from "../api/transactions";
 import { DeleteTransactionDialog } from "../components/DeleteTransactionDialog";
 import { TransactionForm } from "../components/TransactionForm";
+import { AnimatedRegion } from "../components/AnimatedRegion";
 import { Money } from "../components/Money";
 import { formatDate } from "../lib/formatters";
 import { jakartaToday, monthRange } from "../lib/transactions";
@@ -31,7 +32,9 @@ export function TransactionsPage() {
   const opener = useRef<HTMLElement | null>(null);
   const focusAfterClose = useRef(false);
   const addButton = useRef<HTMLButtonElement>(null);
-  const validMonth = Boolean(monthRange(filters.month));
+  const [monthBeforeAll, setMonthBeforeAll] = useState(() => jakartaToday().slice(0, 7));
+  const allMonths = filters.month === "all";
+  const validMonth = allMonths || Boolean(monthRange(filters.month));
   const categories = useQuery({ queryKey: ["categories"], queryFn: ({ signal }) => fetchCategories(signal) });
   const list = useQuery({ queryKey: ["transactions", filters], queryFn: ({ signal }) => fetchTransactions(filters, signal), enabled: validMonth });
   const categoryItems = categories.data ?? [];
@@ -102,6 +105,7 @@ export function TransactionsPage() {
   }
 
   const hasActiveFilters = Boolean(
+    filters.month !== jakartaToday().slice(0, 7) ||
     filters.type !== "all" ||
     filters.category_id !== "all" ||
     filters.search ||
@@ -160,14 +164,14 @@ export function TransactionsPage() {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `transaksi-${snapshot.month}.csv`;
+      link.download = `transaksi-${snapshot.month === "all" ? "semua-bulan" : snapshot.month}.csv`;
       document.body.append(link);
       try { link.click(); } finally {
         link.remove();
         // Let the browser start consuming the Blob before releasing its URL.
         window.setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
-      setNotice(`Download CSV dimulai untuk bulan ${snapshot.month}, sesuai filter saat export. Periksa folder download browser.`);
+      setNotice(`Download CSV dimulai untuk ${snapshot.month === "all" ? "semua bulan" : `bulan ${snapshot.month}`}, sesuai filter saat export. Periksa folder download browser.`);
     } catch (error) {
       setExportError(error instanceof Error ? error.message : "Coba lagi export setelah memastikan backend berjalan.");
     } finally {
@@ -205,16 +209,25 @@ export function TransactionsPage() {
         <button type="button" className="transaction-button mt-3" onClick={() => void categories.refetch()} disabled={categories.isFetching}>{categories.isFetching ? "Memuat kategori…" : "Coba lagi kategori"}</button>
       </div>}
       {categories.isPending && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Memuat kategori…</p>}
-      {editor && <TransactionForm key={editor.transaction?.id ?? "new"} transaction={editor.transaction} categories={categoryItems} categoriesReady={categoriesReady} onCancel={closeEditor} onSaved={() => {
+      <AnimatedRegion>{editor && <TransactionForm key={editor.transaction?.id ?? "new"} transaction={editor.transaction} categories={categoryItems} categoriesReady={categoriesReady} onCancel={closeEditor} onSaved={() => {
         setNotice(`Transaksi berhasil ${editor.transaction ? "diperbarui" : "ditambahkan"}. Daftar tetap mengikuti filter aktif.`);
         closeEditor();
-      }} />}
+      }} />}</AnimatedRegion>
 
       <section aria-label="Filter transaksi" className="finance-panel finance-filter-bar space-y-4">
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="transaction-field">
             <label htmlFor="filter-month">Bulan</label>
-            <input id="filter-month" name="filter-month" className="transaction-control" type="month" min="0001-01" max="9999-12" value={filters.month} aria-invalid={!validMonth} aria-describedby="filter-month-error" onChange={(event) => updateFilter({ month: event.target.value })} />
+            <input id="filter-month" name="filter-month" className="transaction-control" type="month" min="0001-01" max="9999-12" value={allMonths ? monthBeforeAll : filters.month} disabled={allMonths} aria-invalid={!validMonth} aria-describedby="filter-month-error" onChange={(event) => updateFilter({ month: event.target.value })} />
+            <label className="mt-1 inline-flex min-h-9 cursor-pointer items-center gap-2" htmlFor="filter-all-months">
+              <input id="filter-all-months" type="checkbox" className="h-4 w-4 accent-[var(--primary)]" checked={allMonths} onChange={(event) => {
+                if (event.target.checked) {
+                  setMonthBeforeAll(monthRange(filters.month) ? filters.month : jakartaToday().slice(0, 7));
+                  updateFilter({ month: "all" });
+                } else updateFilter({ month: monthBeforeAll });
+              }} />
+              Semua bulan
+            </label>
             <span id="filter-month-error" className="transaction-field-error">{!validMonth && "Pilih bulan yang valid untuk menampilkan transaksi."}</span>
           </div>
           <div className="transaction-field">
@@ -320,13 +333,13 @@ export function TransactionsPage() {
             {list.isFetching && <p role="status" className="px-4 pt-3 text-sm text-slate-600 dark:text-slate-400">Memperbarui transaksi…</p>}
             <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabel transaksi, geser untuk melihat semua kolom">
               <table className="finance-table w-full min-w-[760px] border-collapse text-left text-sm">
-                <caption className="sr-only">Transaksi bulan {filters.month}, sesuai filter tipe, kategori, pencarian, dan nominal.</caption>
+                <caption className="sr-only">Transaksi {allMonths ? "semua bulan" : `bulan ${filters.month}`}, sesuai filter tipe, kategori, pencarian, dan nominal.</caption>
                 <thead><tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400">
                   <th scope="col" className="px-4 py-3 font-medium">Tanggal</th><th scope="col" className="px-4 py-3 font-medium">Kategori</th>
                   <th scope="col" className="px-4 py-3 font-medium">Deskripsi</th><th scope="col" className="px-4 py-3 font-medium">Tipe</th>
                   <th scope="col" className="px-4 py-3 text-right font-medium">Nominal</th><th scope="col" className="px-4 py-3 font-medium">Aksi</th>
                 </tr></thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                <tbody key={JSON.stringify(filters)} className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {list.data?.items.map((transaction) => <tr key={transaction.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                     <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(transaction.date)}</td>
                     <td className="max-w-48 break-words px-4 py-3 text-slate-900 dark:text-slate-100">{categoryItems.find((category) => category.id === transaction.category_id)?.name ?? `Kategori #${transaction.category_id}`}</td>

@@ -208,3 +208,14 @@ test("mutation invalidates all transaction/analytics periods and refetches activ
   unsubscribe();
   client.clear();
 });
+
+
+test("all-month transactions omit dates while preserving pagination and other filters", async (t) => {
+  t.mock.method(globalThis, "fetch", async (url) => {
+    assert.deepEqual(Object.fromEntries(new URL(String(url)).searchParams), {
+      type: "expense", category_id: "1", search: "makan", min_amount: "1000", max_amount: "9000", page: "2", page_size: "20",
+    });
+    return Response.json({ items: [], total: 0, page: 2, page_size: 20 });
+  });
+  await fetchTransactions({ month: "all", type: "expense", category_id: "1", search: "makan", min_amount: "1000", max_amount: "9000", page: 2 });
+});

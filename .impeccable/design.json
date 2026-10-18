@@ -1,0 +1,381 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-18T11:16:40.054727+00:00",
+  "title": "Design System: Personal Finance Tracker",
+  "extensions": {
+    "colorMeta": {
+      "light-background": {
+        "role": "neutral",
+        "displayName": "Light Background"
+      },
+      "light-foreground": {
+        "role": "neutral",
+        "displayName": "Light Foreground"
+      },
+      "light-card": {
+        "role": "neutral",
+        "displayName": "Light Card"
+      },
+      "light-card-foreground": {
+        "role": "neutral",
+        "displayName": "Light Card Foreground"
+      },
+      "light-border": {
+        "role": "neutral",
+        "displayName": "Light Border"
+      },
+      "light-muted": {
+        "role": "neutral",
+        "displayName": "Light Muted"
+      },
+      "light-muted-bg": {
+        "role": "neutral",
+        "displayName": "Light Muted Bg"
+      },
+      "light-primary": {
+        "role": "primary",
+        "displayName": "Light Primary"
+      },
+      "light-primary-foreground": {
+        "role": "neutral",
+        "displayName": "Light Primary Foreground"
+      },
+      "light-income": {
+        "role": "semantic",
+        "displayName": "Light Income"
+      },
+      "light-income-bg": {
+        "role": "semantic",
+        "displayName": "Light Income Bg"
+      },
+      "light-expense": {
+        "role": "semantic",
+        "displayName": "Light Expense"
+      },
+      "light-expense-bg": {
+        "role": "semantic",
+        "displayName": "Light Expense Bg"
+      },
+      "light-accent": {
+        "role": "primary",
+        "displayName": "Light Accent"
+      },
+      "light-accent-bg": {
+        "role": "neutral",
+        "displayName": "Light Accent Bg"
+      },
+      "light-form-bg": {
+        "role": "neutral",
+        "displayName": "Light Form Bg"
+      },
+      "light-form-border": {
+        "role": "neutral",
+        "displayName": "Light Form Border"
+      },
+      "dark-background": {
+        "role": "neutral",
+        "displayName": "Dark Background"
+      },
+      "dark-foreground": {
+        "role": "neutral",
+        "displayName": "Dark Foreground"
+      },
+      "dark-card": {
+        "role": "neutral",
+        "displayName": "Dark Card"
+      },
+      "dark-card-foreground": {
+        "role": "neutral",
+        "displayName": "Dark Card Foreground"
+      },
+      "dark-border": {
+        "role": "neutral",
+        "displayName": "Dark Border"
+      },
+      "dark-muted": {
+        "role": "neutral",
+        "displayName": "Dark Muted"
+      },
+      "dark-muted-bg": {
+        "role": "neutral",
+        "displayName": "Dark Muted Bg"
+      },
+      "dark-primary": {
+        "role": "primary",
+        "displayName": "Dark Primary"
+      },
+      "dark-primary-foreground": {
+        "role": "neutral",
+        "displayName": "Dark Primary Foreground"
+      },
+      "dark-income": {
+        "role": "semantic",
+        "displayName": "Dark Income"
+      },
+      "dark-income-bg": {
+        "role": "semantic",
+        "displayName": "Dark Income Bg"
+      },
+      "dark-expense": {
+        "role": "semantic",
+        "displayName": "Dark Expense"
+      },
+      "dark-expense-bg": {
+        "role": "semantic",
+        "displayName": "Dark Expense Bg"
+      },
+      "dark-accent": {
+        "role": "primary",
+        "displayName": "Dark Accent"
+      },
+      "dark-accent-bg": {
+        "role": "neutral",
+        "displayName": "Dark Accent Bg"
+      },
+      "dark-form-bg": {
+        "role": "neutral",
+        "displayName": "Dark Form Bg"
+      },
+      "dark-form-border": {
+        "role": "neutral",
+        "displayName": "Dark Form Border"
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Observed headline role."
+      },
+      "headline-wide": {
+        "displayName": "Headline Wide",
+        "purpose": "Observed headline wide role."
+      },
+      "amount": {
+        "displayName": "Amount",
+        "purpose": "Observed amount role."
+      },
+      "amount-main": {
+        "displayName": "Amount Main",
+        "purpose": "Observed amount main role."
+      },
+      "amount-main-wide": {
+        "displayName": "Amount Main Wide",
+        "purpose": "Observed amount main wide role."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Observed body role."
+      },
+      "subtitle": {
+        "displayName": "Subtitle",
+        "purpose": "Observed subtitle role."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Observed label role."
+      },
+      "navigation": {
+        "displayName": "Navigation",
+        "purpose": "Observed navigation role."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "Observed button role."
+      }
+    },
+    "shadows": [
+      {
+        "name": "dialog",
+        "value": "0 24px 80px rgb(9 37 28 / 22%)",
+        "purpose": "Native confirmation dialog depth."
+      }
+    ],
+    "motion": [
+      {
+        "name": "feedback",
+        "value": "160ms ease",
+        "purpose": "Button, navigation, field, and period state transitions."
+      },
+      {
+        "name": "route-enter",
+        "value": "280ms cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Route arrival and native new-view transition."
+      },
+      {
+        "name": "route-exit",
+        "value": "140ms ease-in",
+        "purpose": "Native old-view transition."
+      },
+      {
+        "name": "form-enter",
+        "value": "240ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Form entrance using Web Animations."
+      },
+      {
+        "name": "form-exit",
+        "value": "150ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Inert retained form exit."
+      },
+      {
+        "name": "dialog-enter",
+        "value": "240ms cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Native dialog entrance."
+      },
+      {
+        "name": "dialog-exit",
+        "value": "140ms ease-in",
+        "purpose": "Close animation before releasing the native focus trap."
+      },
+      {
+        "name": "chart-line",
+        "value": "700ms cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Historical expense line drawing."
+      },
+      {
+        "name": "chart-area",
+        "value": "550ms ease-out",
+        "purpose": "Historical expense area reveal."
+      },
+      {
+        "name": "reduced-feedback",
+        "value": "80ms",
+        "purpose": "Opacity-only form and dialog close feedback."
+      },
+      {
+        "name": "row-arrival",
+        "value": "260ms / 310ms / 350ms ease-out",
+        "purpose": "First three row entrance durations."
+      },
+      {
+        "name": "allocation",
+        "value": "550ms cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Allocation fill entrance."
+      },
+      {
+        "name": "budget-progress",
+        "value": "500ms cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Budget progress entrance."
+      },
+      {
+        "name": "notice",
+        "value": "250ms ease-out",
+        "purpose": "Status notice entrance."
+      },
+      {
+        "name": "navigation-indicator",
+        "value": "220ms ease-out",
+        "purpose": "Active navigation underline arrival."
+      },
+      {
+        "name": "chart-dot",
+        "value": "180ms ease",
+        "purpose": "Chart dot radius and fill transition."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1280px"
+      }
+    ],
+    "focus": {
+      "outline": "2px solid var(--accent)",
+      "outlineOffset": "3px"
+    },
+    "dialogBackdrop": {
+      "light": "rgb(15 23 42 / 45%)",
+      "dark": "rgb(0 0 0 / 75%)"
+    },
+    "layering": {
+      "stickyNavigation": 10,
+      "skipLink": 20,
+      "dialog": "browser top layer"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Existing primary action treatment.",
+      "html": "<button class=\"ds-button-primary\">Catat Transaksi</button>",
+      "css": ".ds-button-primary{font-family:\"Manrope\",\"Segoe UI\",sans-serif;min-height:2.75rem;padding:.625rem .875rem;border:1px solid var(--border);border-radius:var(--radius-control);background:var(--card);color:var(--foreground);font-size:.875rem;font-weight:550;cursor:pointer;background:var(--primary);color:var(--primary-foreground);border-color:var(--primary);}.ds-button-primary:hover:not(:disabled){background:color-mix(in srgb,var(--primary),var(--foreground) 12%);}.ds-button-primary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}.ds-button-primary:disabled{opacity:.55;cursor:not-allowed;}@media(prefers-reduced-motion:no-preference){.ds-button-primary{transition:background-color 160ms ease,border-color 160ms ease,color 160ms ease,transform 160ms ease;}.ds-button-primary:hover:not(:disabled){transform:translateY(-1px);}.ds-button-primary:active:not(:disabled){transform:translateY(1px);}}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Existing secondary action treatment.",
+      "html": "<button class=\"ds-button-secondary\">Batal</button>",
+      "css": ".ds-button-secondary{font-family:\"Manrope\",\"Segoe UI\",sans-serif;min-height:2.75rem;padding:.625rem .875rem;border:1px solid var(--border);border-radius:var(--radius-control);background:var(--card);color:var(--foreground);font-size:.875rem;font-weight:550;cursor:pointer;}.ds-button-secondary:hover:not(:disabled){background:var(--muted-bg);}.ds-button-secondary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}.ds-button-secondary:disabled{opacity:.55;cursor:not-allowed;}@media(prefers-reduced-motion:no-preference){.ds-button-secondary{transition:background-color 160ms ease,border-color 160ms ease,color 160ms ease,transform 160ms ease;}.ds-button-secondary:hover:not(:disabled){transform:translateY(-1px);}.ds-button-secondary:active:not(:disabled){transform:translateY(1px);}}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Existing danger action treatment.",
+      "html": "<button class=\"ds-button-danger\">Hapus transaksi</button>",
+      "css": ".ds-button-danger{font-family:\"Manrope\",\"Segoe UI\",sans-serif;min-height:2.75rem;padding:.625rem .875rem;border:1px solid var(--border);border-radius:var(--radius-control);background:var(--card);color:var(--foreground);font-size:.875rem;font-weight:550;cursor:pointer;background:#b91c1c;color:white;border-color:#b91c1c;}.ds-button-danger:hover:not(:disabled){background:#991b1b;}.ds-button-danger:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}.ds-button-danger:disabled{opacity:.55;cursor:not-allowed;}@media(prefers-reduced-motion:no-preference){.ds-button-danger{transition:background-color 160ms ease,border-color 160ms ease,color 160ms ease,transform 160ms ease;}.ds-button-danger:hover:not(:disabled){transform:translateY(-1px);}.ds-button-danger:active:not(:disabled){transform:translateY(1px);}}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Bordered editable control with visible focus and invalid states.",
+      "html": "<label class=\"ds-field\">Deskripsi<input class=\"ds-input\" placeholder=\"Deskripsi transaksi\"></label>",
+      "css": ".ds-field{font-family:\"Manrope\",\"Segoe UI\",sans-serif;display:flex;flex-direction:column;gap:.375rem;color:var(--foreground);font-size:.875rem;font-weight:500;}.ds-input{font-family:\"Manrope\",\"Segoe UI\",sans-serif;min-width:0;min-height:2.75rem;padding:.625rem .75rem;border:1px solid var(--border);border-radius:var(--radius-control);background:var(--card);color:var(--foreground);font-size:1rem;caret-color:var(--accent);}.ds-input::placeholder{color:var(--muted);opacity:1;}.ds-input:hover:not(:disabled){border-color:var(--muted);}.ds-input:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}.ds-input[aria-invalid=\"true\"]{border-color:#b91c1c;}.ds-input:disabled{opacity:.55;cursor:not-allowed;}@media(prefers-reduced-motion:no-preference){.ds-input{transition:border-color 160ms ease;}}"
+    },
+    {
+      "name": "Navigation",
+      "kind": "nav",
+      "refersTo": "navigation-active",
+      "description": "Current page and inactive page treatment.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Navigasi contoh\"><a class=\"ds-nav-link\" href=\"#dashboard\" aria-current=\"page\">Dashboard</a><a class=\"ds-nav-link\" href=\"#transactions\">Transaksi</a></nav>",
+      "css": ".ds-nav{display:flex;gap:.25rem;}.ds-nav-link{font-family:\"Manrope\",\"Segoe UI\",sans-serif;display:inline-flex;min-height:2.75rem;align-items:center;justify-content:center;padding:.625rem .875rem;border-radius:var(--radius-control);color:var(--muted);font-size:.875rem;font-weight:600;text-decoration:none;}.ds-nav-link:hover{background:var(--muted-bg);color:var(--foreground);}.ds-nav-link[aria-current=\"page\"]{background:var(--accent-bg);color:var(--primary);}.ds-nav-link:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}@media(prefers-reduced-motion:no-preference){.ds-nav-link{transition:background-color 160ms ease,color 160ms ease;position:relative;}.ds-nav-link[aria-current=\"page\"]::after{content:\"\";position:absolute;bottom:.25rem;width:1rem;height:2px;background:currentColor;border-radius:1rem;}}"
+    },
+    {
+      "name": "Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Quiet bordered surface with standard desktop metric padding.",
+      "html": "<section class=\"ds-panel\">Ringkasan keuangan</section>",
+      "css": ".ds-panel{font-family:\"Manrope\",\"Segoe UI\",sans-serif;min-width:0;padding:1.5rem;border:1px solid var(--border);border-radius:var(--radius-panel);background:var(--card);color:var(--foreground);}"
+    },
+    {
+      "name": "Chart Period",
+      "kind": "chip",
+      "refersTo": "chart-period-active",
+      "description": "Selected and unselected chart period controls.",
+      "html": "<div class=\"ds-periods\"><button class=\"ds-period\" aria-pressed=\"true\"><span>Jan 2026</span><span>Rp1.000.000</span></button><button class=\"ds-period\" aria-pressed=\"false\"><span>Feb 2026</span><span>Rp1.200.000</span></button></div>",
+      "css": ".ds-periods{display:flex;gap:.5rem;}.ds-period{font-family:\"Manrope\",\"Segoe UI\",sans-serif;display:flex;min-width:0;flex-direction:column;gap:.35rem;padding:.65rem .85rem;border:0;background:transparent;border-radius:.65rem;color:var(--muted);font-size:.75rem;text-align:left;cursor:pointer;}.ds-period span:last-child{color:var(--foreground);font-weight:650;}.ds-period[aria-pressed=\"true\"]{background:var(--accent-bg);color:var(--primary);}.ds-period:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}@media(prefers-reduced-motion:no-preference){.ds-period{transition:background-color 160ms ease,color 160ms ease;}}"
+    }
+  ],
+  "narrative": {
+    "overview": "An Indonesian personal finance workspace with clear amounts, quiet green neutrals, and a restrained teal accent. The approved direction is tidy, with prominent amounts and short, gentle animations. Light and dark themes share the same hierarchy and semantic color roles.",
+    "keyCharacteristics": [
+      "Prominent tabular amounts with exact rupiah grouping.",
+      "Quiet bordered surfaces and teal selection states.",
+      "Short motion that explains navigation and changes in state."
+    ],
+    "rules": [],
+    "dos": [
+      "Do use the matching light or dark semantic color role.",
+      "Do preserve exact rupiah grouping and tabular numerals through the Money component.",
+      "Do keep visible focus, descriptive chart labels, and native dialog behavior.",
+      "Do honor reduced motion for spatial animation."
+    ],
+    "donts": [
+      "Don't present synthetic balances or projected values as historical chart data.",
+      "Don't add perpetual decorative motion.",
+      "Don't use color alone to convey financial status; retain labels and amounts."
+    ]
+  }
+}

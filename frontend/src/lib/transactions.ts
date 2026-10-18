@@ -31,6 +31,7 @@ export interface TransactionDraft {
 export type FieldErrors = Partial<Record<keyof TransactionDraft, string>>;
 export type TransactionPayload = Pick<Transaction, "date" | "type" | "category_id" | "amount_rupiah" | "description">;
 export interface TransactionFilters {
+  // "all" omits date boundaries; otherwise use a validated YYYY-MM period.
   month: string;
   type: TransactionType | "all";
   category_id: string;

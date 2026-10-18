@@ -100,7 +100,7 @@ try {
   const waitText = (value) => until(async () => (await text()).includes(value), value);
   const click = (label) => evaluate(`(() => { const button = [...document.querySelectorAll('button')].find(el => el.textContent.trim() === ${JSON.stringify(label)}); if (!button || button.disabled) throw new Error('Button missing/disabled: ' + ${JSON.stringify(label)}); button.focus(); button.click(); })()`);
   async function fill(name, value) {
-    await evaluate(`(() => { const el = document.querySelector('[name="${name}"]'); if (!el) throw new Error('Missing field ${name}'); const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); })()`);
+    await evaluate(`(() => { const el = document.querySelector('input[name="${name}"], select[name="${name}"], textarea[name="${name}"]'); if (!el) throw new Error('Missing field ${name}'); const proto = el.tagName === 'SELECT' ? HTMLSelectElement.prototype : el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); })()`);
   }
   async function apiRequest(path, method = "GET", payload) {
     const response = await fetch(`${api}/api/v1${path}`, { method, headers: { "Content-Type": "application/json" }, ...(payload ? { body: JSON.stringify(payload) } : {}) });
@@ -195,6 +195,25 @@ try {
   assert.equal(await readFile(filteredDownload, "utf8"), '\ufeff"tanggal","tipe","kategori","nominal_rupiah","deskripsi"\r\n"2026-09-30","income","Gaji","9999999999999","UI pindah"\r\n');
   console.log("PASS downloaded CSV matches combined month/type/category filter");
 
+  await evaluate("document.querySelector('#filter-all-months').click()");
+  await until(async () => await evaluate("document.querySelector('#filter-month').disabled"), "all-month disables specific month");
+  await waitText("UI pindah");
+  await fill("filter-type", "all");
+  await fill("filter-category", "all");
+  await waitText("UI dua");
+  assert.ok((await rows()).some(row => row.includes("UI pindah")), "all-month list includes September and October");
+  await click("Export CSV");
+  const allMonthDownload = resolve(downloads, "transaksi-semua-bulan.csv");
+  await until(async () => (await readFile(allMonthDownload)).length > 0, "all-month CSV download");
+  const allMonthCSV = await readFile(allMonthDownload, "utf8");
+  assert.ok(allMonthCSV.includes("2026-09-30") && allMonthCSV.includes("2026-10-09"));
+  await evaluate("document.querySelector('#filter-all-months').click()");
+  assert.equal(await evaluate("document.querySelector('#filter-month').value"), "2026-09");
+  await waitText("UI pindah");
+  await until(async () => !(await rows()).some(row => row.includes("UI dua")), "specific month restores filtered rows");
+  console.log("PASS all-month list and CSV include records across months; specific month restores correctly");
+
+
   await fill("filter-month", "2026-10");
   await fill("filter-type", "all");
   await fill("filter-category", "all");
@@ -262,7 +281,7 @@ try {
   await evaluate("window.fetch = (...args) => args[1]?.method === 'POST' ? Promise.resolve(new Response(JSON.stringify({detail:[{loc:['body','amount_rupiah'],msg:'Invalid',type:'value_error'}]}),{status:422,headers:{'Content-Type':'application/json'}})) : window.realFetch(...args)");
   await click("Simpan transaksi");
   await waitText("Nominal ditolak server");
-  assert.equal(await evaluate("document.querySelector('[name=description]').value"), "Fault-safe draft");
+  assert.equal(await evaluate("document.querySelector('textarea[name=description]').value"), "Fault-safe draft");
   assert.equal(await evaluate("document.activeElement.name"), "amount_rupiah");
   await evaluate("window.fetch = (...args) => args[1]?.method === 'POST' ? Promise.reject(new TypeError('offline')) : window.realFetch(...args)");
   await click("Simpan transaksi");
@@ -299,7 +318,7 @@ try {
   await evaluate("window.fetch = window.realFetch");
   await click("Coba lagi kategori");
   await until(async () => !(await evaluate("document.querySelector('[type=submit]').disabled")), "category retry enables form");
-  assert.equal(await evaluate("document.querySelector('[name=description]').value"), "Retained while categories fail");
+  assert.equal(await evaluate("document.querySelector('textarea[name=description]').value"), "Retained while categories fail");
   await click("Batal");
   console.log("PASS loading and category error/retry, retained form, disabled submit without categories");
 
@@ -365,7 +384,7 @@ try {
   await dashboardCheck("dashboard period switch updates all widgets", async () => {
     await setPeriod("2026-07");
     await expectMetrics("Rp 1.000", "Rp 400", "Rp 600");
-    await waitText("75.0%");
+    await waitText("75,0%");
     assert.equal(await evaluate("document.querySelector('[aria-label=\"Aktivitas Transaksi Terbaru\"]').innerText.includes('July food')"), true);
     const recentText = await evaluate("document.querySelector('[aria-label=\"Aktivitas Transaksi Terbaru\"]').innerText");
     assert.ok(recentText.indexOf("July food") < recentText.indexOf("July transport"));
@@ -388,8 +407,9 @@ try {
     assert.ok(cards.every((card) => !card.includes("Rp ")));
   });
   await dashboardCheck("breakdown percentages remain correct without summary", async () => {
-    await waitText("75.0%");
-    assert.deepEqual(await evaluate("[...document.querySelectorAll('[role=progressbar]')].map(el => el.getAttribute('aria-valuenow'))"), ["75", "25"]);
+    await waitText("75,0%");
+    assert.deepEqual(await evaluate("[...document.querySelectorAll('.allocation-percentage')].map(el => el.textContent)"), ["75,0%", "25,0%"]);
+    assert.equal(await evaluate("document.querySelectorAll('.allocation-pie-visual [role=button]').length"), 2);
   });
   await evaluate("window.fetch = window.realFetch");
   await send("Page.removeScriptToEvaluateOnNewDocument", { identifier: summaryFault.identifier });
