@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { formatRupiah } from "../src/lib/formatters.ts";
 import {
   fetchAnalyticsByCategory,
+  fetchAnalyticsInsights,
   fetchAnalyticsSummary,
   fetchRecentTransactions,
 } from "../src/api/analytics.ts";
@@ -144,4 +145,58 @@ test("recent transactions preserve four-digit years below 1000", async (t) => {
   assert.deepEqual(urls.map((url) => new URL(url).searchParams.get("start_date")), [
     "0001-01-01", "0099-01-01", "0999-01-01",
   ]);
+});
+
+test("fetchAnalyticsInsights sends valid month/year and parses response safely", async (t) => {
+  const controller = new AbortController();
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    const parsed = new URL(String(url));
+    assert.equal(parsed.pathname, "/api/v1/analytics/insights");
+    assert.deepEqual(Object.fromEntries(parsed.searchParams), { month: "10", year: "2026" });
+    assert.equal(options.signal, controller.signal);
+    return Response.json({
+      month: 10,
+      year: 2026,
+      comparison: {
+        has_baseline: true,
+        previous_expense: "1000000",
+        difference: "250000",
+        percentage: "25.00",
+        direction: "up",
+      },
+      top_category: {
+        has_data: true,
+        category_id: 1,
+        category_name: "Makanan",
+        expense: "800000",
+        percentage_of_total: "64.00",
+      },
+      cash_flow: {
+        status: "surplus",
+        savings_rate_percentage: "40.00",
+      },
+      narratives: ["Pengeluaran naik 25.00%."],
+    });
+  });
+
+  const insights = await fetchAnalyticsInsights(10, 2026, controller.signal);
+  assert.equal(insights.month, 10);
+  assert.equal(insights.comparison.direction, "up");
+  assert.equal(insights.top_category.category_name, "Makanan");
+  assert.equal(insights.cash_flow.status, "surplus");
+});
+
+test("fetchAnalyticsInsights rejects unsafe category IDs in response", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => {
+    return Response.json({
+      month: 10,
+      year: 2026,
+      comparison: { has_baseline: false, previous_expense: null, difference: null, percentage: null, direction: "no_baseline" },
+      top_category: { has_data: true, category_id: Number.MAX_SAFE_INTEGER + 1, category_name: "Unsafe", expense: "100", percentage_of_total: "100.00" },
+      cash_flow: { status: "no_activity", savings_rate_percentage: null },
+      narratives: [],
+    });
+  });
+
+  await assert.rejects(fetchAnalyticsInsights(10, 2026), /batas integer aman/i);
 });

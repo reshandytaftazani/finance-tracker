@@ -252,11 +252,12 @@ Catatan keselamatan:
 
 ## Ringkasan Bulanan (API)
 
-Tersedia dua endpoint analytics yang dikonsumsi langsung oleh Dashboard:
+Tersedia endpoint analytics yang dikonsumsi langsung oleh Dashboard:
 
 ```text
 GET /api/v1/analytics/summary?month=10&year=2026
 GET /api/v1/analytics/by-category?month=10&year=2026
+GET /api/v1/analytics/insights?month=10&year=2026
 ```
 
 Keduanya mewajibkan `month` (1–12) dan `year` (1–9999), memakai tanggal kalender
@@ -288,8 +289,41 @@ dataset besar memerlukan evaluasi performa sebelum mengganti strategi agregasi.
 
 Bulan kosong menghasilkan ketiga total `"0"` dan breakdown `items: []`.
 Kegagalan database/API tetap error, **bukan** total nol. Mutasi transaksi dan rename
-kategori langsung tercermin pada request berikutnya. Tidak ada perbandingan persen
-atau tren pada endpoint ini; jangan menampilkan nol baseline sebagai infinity.
+kategori langsung tercermin pada request berikutnya.
+
+Endpoint `GET /api/v1/analytics/insights` menyajikan ringkasan analitik berbasis aturan deterministik (*rule-based*), meliputi perbandingan pengeluaran bulan-ke-bulan (*Month-over-Month*), kategori dominan, dan kesehatan arus kas:
+
+```json
+{
+  "month": 10,
+  "year": 2026,
+  "comparison": {
+    "has_baseline": true,
+    "previous_expense": "1000000",
+    "difference": "250000",
+    "percentage": "25.00",
+    "direction": "up"
+  },
+  "top_category": {
+    "has_data": true,
+    "category_id": 1,
+    "category_name": "Makanan",
+    "expense": "800000",
+    "percentage_of_total": "64.00"
+  },
+  "cash_flow": {
+    "status": "surplus",
+    "savings_rate_percentage": "40.00"
+  },
+  "narratives": [
+    "Pengeluaran naik 25.00% dibanding bulan lalu.",
+    "Kategori terbesar bulan ini adalah Makanan (64.00% dari total pengeluaran).",
+    "Tingkat tabungan (savings rate) mencapai 40.00%."
+  ]
+}
+```
+
+Bila bulan sebelumnya kosong, `has_baseline` bernilai `false` dan persentase tidak dihitung, mencegah kalkulasi tak tentu (*NaN* atau *infinity*).
 
 ---
 

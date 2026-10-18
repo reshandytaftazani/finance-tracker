@@ -187,6 +187,36 @@ class AnalyticsByCategory(BaseModel):
     items: list[CategoryExpense]
 
 
+class MoMComparison(BaseModel):
+    has_baseline: bool
+    previous_expense: str | None = None
+    difference: str | None = None
+    percentage: str | None = None
+    direction: Literal["up", "down", "equal", "no_baseline"]
+
+
+class TopCategoryInsight(BaseModel):
+    has_data: bool
+    category_id: int | None = None
+    category_name: str | None = None
+    expense: str | None = None
+    percentage_of_total: str | None = None
+
+
+class CashFlowInsight(BaseModel):
+    status: Literal["surplus", "deficit", "balanced", "no_activity"]
+    savings_rate_percentage: str | None = None
+
+
+class AnalyticsInsights(BaseModel):
+    month: int = Field(ge=1, le=12)
+    year: int = Field(ge=1, le=9999)
+    comparison: MoMComparison
+    top_category: TopCategoryInsight
+    cash_flow: CashFlowInsight
+    narratives: list[str]
+
+
 BudgetMonth = Annotated[int, Field(strict=True, ge=1, le=12)]
 BudgetYear = Annotated[int, Field(strict=True, ge=1, le=9999)]
 

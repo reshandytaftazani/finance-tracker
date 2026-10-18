@@ -24,6 +24,36 @@ export interface AnalyticsCategoryBreakdown {
   items: CategoryBreakdownItem[];
 }
 
+export interface MoMComparison {
+  has_baseline: boolean;
+  previous_expense: string | null;
+  difference: string | null;
+  percentage: string | null;
+  direction: "up" | "down" | "equal" | "no_baseline";
+}
+
+export interface TopCategoryInsight {
+  has_data: boolean;
+  category_id: number | null;
+  category_name: string | null;
+  expense: string | null;
+  percentage_of_total: string | null;
+}
+
+export interface CashFlowInsight {
+  status: "surplus" | "deficit" | "balanced" | "no_activity";
+  savings_rate_percentage: string | null;
+}
+
+export interface AnalyticsInsights {
+  month: number;
+  year: number;
+  comparison: MoMComparison;
+  top_category: TopCategoryInsight;
+  cash_flow: CashFlowInsight;
+  narratives: string[];
+}
+
 function assertSafeIdentifier(id: unknown): asserts id is number {
   if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1) {
     throw new Error(
@@ -117,4 +147,16 @@ export async function fetchRecentTransactions(
   });
   const result = await request<Page<Transaction>>(`/api/v1/transactions?${params}`, { signal });
   return result.items;
+}
+
+export async function fetchAnalyticsInsights(
+  month: number,
+  year: number,
+  signal?: AbortSignal
+): Promise<AnalyticsInsights> {
+  validatePeriod(month, year);
+  return request<AnalyticsInsights>(
+    `/api/v1/analytics/insights?month=${month}&year=${year}`,
+    { signal }
+  );
 }

@@ -308,7 +308,7 @@ def test_totals_exceed_sqlite_sum_and_javascript_integer_limits_exactly(analytic
     assert item["status"] == "over_budget"
 
 
-@pytest.mark.parametrize("endpoint", ["summary", "by-category"])
+@pytest.mark.parametrize("endpoint", ["summary", "by-category", "insights"])
 def test_database_failure_is_error_not_zero(analytics_api, endpoint):
     _, engine = analytics_api
     with engine.begin() as connection:
@@ -318,8 +318,107 @@ def test_database_failure_is_error_not_zero(analytics_api, endpoint):
     assert response.status_code == 500
 
 
-@pytest.mark.parametrize("endpoint", ["summary", "by-category"])
+@pytest.mark.parametrize("endpoint", ["summary", "by-category", "insights"])
 def test_missing_server_owner_is_not_successful_empty_period(analytics_api, endpoint):
     client, _ = analytics_api
     app.dependency_overrides[get_current_owner_id] = lambda: 999
     assert client.get(f"{PREFIX}/{endpoint}", params=PERIOD).status_code == 500
+
+
+def test_insights_endpoint_month_over_month_increase_and_surplus(analytics_api):
+    client, _ = analytics_api
+    # September 2026: Expense 1,000,000
+    add(client, amount="1000000", when="2026-09-15", category=1, kind="expense")
+    # October 2026: Income 5,000,000; Expense Makanan 1,000,000; Expense Transport 500,000 (Total 1,500,000)
+    add(client, amount="5000000", when="2026-10-01", category=2, kind="income")
+    add(client, amount="1000000", when="2026-10-10", category=1, kind="expense")
+    add(client, amount="500000", when="2026-10-12", category=3, kind="expense")
+
+    data = get(client, "insights", {"month": 10, "year": 2026})
+
+    assert data["month"] == 10
+    assert data["year"] == 2026
+
+    # Comparison MoM: 1.5jt vs 1.0jt -> up 500rb (+50.00%)
+    comp = data["comparison"]
+    assert comp["has_baseline"] is True
+    assert comp["previous_expense"] == "1000000"
+    assert comp["difference"] == "500000"
+    assert comp["percentage"] == "50.00"
+    assert comp["direction"] == "up"
+
+    # Top category: Makanan 1.0jt out of 1.5jt (66.67%)
+    top = data["top_category"]
+    assert top["has_data"] is True
+    assert top["category_name"] == "Makanan"
+    assert top["expense"] == "1000000"
+    assert top["percentage_of_total"] == "66.67"
+
+    # Cash flow: income 5jt, expense 1.5jt -> net 3.5jt -> savings rate 70.00%
+    cf = data["cash_flow"]
+    assert cf["status"] == "surplus"
+    assert cf["savings_rate_percentage"] == "70.00"
+
+    assert len(data["narratives"]) > 0
+
+
+def test_insights_endpoint_month_over_month_decrease_and_deficit(analytics_api):
+    client, _ = analytics_api
+    # September 2026: Expense 2,000,000
+    add(client, amount="2000000", when="2026-09-20", category=1, kind="expense")
+    # October 2026: Income 500,000; Expense 1,000,000
+    add(client, amount="500000", when="2026-10-01", category=2, kind="income")
+    add(client, amount="1000000", when="2026-10-15", category=1, kind="expense")
+
+    data = get(client, "insights", {"month": 10, "year": 2026})
+
+    comp = data["comparison"]
+    assert comp["has_baseline"] is True
+    assert comp["previous_expense"] == "2000000"
+    assert comp["difference"] == "-1000000"
+    assert comp["percentage"] == "50.00"
+    assert comp["direction"] == "down"
+
+    cf = data["cash_flow"]
+    assert cf["status"] == "deficit"
+    assert cf["savings_rate_percentage"] is None
+
+
+def test_insights_endpoint_no_baseline_when_previous_month_empty(analytics_api):
+    client, _ = analytics_api
+    add(client, amount="500000", when="2026-10-10", category=1, kind="expense")
+
+    data = get(client, "insights", {"month": 10, "year": 2026})
+
+    comp = data["comparison"]
+    assert comp["has_baseline"] is False
+    assert comp["previous_expense"] is None
+    assert comp["difference"] is None
+    assert comp["percentage"] is None
+    assert comp["direction"] == "no_baseline"
+
+
+def test_insights_endpoint_empty_month_safe(analytics_api):
+    client, _ = analytics_api
+    data = get(client, "insights", {"month": 10, "year": 2026})
+
+    assert data["top_category"]["has_data"] is False
+    assert data["cash_flow"]["status"] == "no_activity"
+    assert data["comparison"]["has_baseline"] is False
+
+
+def test_insights_endpoint_year_rollover(analytics_api):
+    client, _ = analytics_api
+    # December 2025: Expense 1,000,000
+    add(client, amount="1000000", when="2025-12-25", category=1, kind="expense")
+    # January 2026: Expense 1,200,000
+    add(client, amount="1200000", when="2026-01-05", category=1, kind="expense")
+
+    data = get(client, "insights", {"month": 1, "year": 2026})
+
+    comp = data["comparison"]
+    assert comp["has_baseline"] is True
+    assert comp["previous_expense"] == "1000000"
+    assert comp["difference"] == "200000"
+    assert comp["percentage"] == "20.00"
+    assert comp["direction"] == "up"
