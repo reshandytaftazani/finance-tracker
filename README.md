@@ -126,8 +126,8 @@ Jangan menghapus database atau menjalankan `alembic stamp` untuk melewati pemeri
 Jika migration gagal, jangan menghapus data: hentikan app, simpan DB yang gagal, dan verifikasi backup
 pada path terpisah sebelum pemulihan. Jangan menimpa DB aktif atau mengabaikan file WAL/SHM.
 Downgrade migration awal menolak database yang berisi owner/kategori/transaksi; gunakan backup terverifikasi.
-Backup ini khusus pengamanan migration, bukan pengganti prosedur backup rutin task 7.2; simpan salinan privat
-di lokasi terpisah juga. Migration PostgreSQL hanya diuji sebagai DDL offline, bukan pada server PostgreSQL.
+Backup ini khusus pengamanan migration; untuk backup & restore rutin, gunakan `python -m scripts.backup`.
+Simpan salinan privat di lokasi terpisah juga. Migration PostgreSQL hanya diuji sebagai DDL offline, bukan pada server PostgreSQL.
 
 ### Budget Bulanan (API)
 
@@ -221,6 +221,32 @@ Proteksi saat export bukan jaminan setelah file diubah oleh aplikasi lain.
 Export dibuat dalam memori untuk penggunaan lokal; dataset sangat besar belum menjadi
 target. **CSV bukan backup database:** tidak memuat ID, owner, notes, atau timestamps,
 dan tidak disediakan jalur restore/import CSV. Simpan export pribadi di lokasi privat.
+
+### 3. Backup dan Restore Database
+
+Prosedur backup rutin dan pemulihan database SQLite tersedia melalui `scripts.backup`. Operasi ini menggunakan **SQLite Online Backup API** dengan koneksi baca aman (`mode=ro`), sehingga snapshot tetap konsisten dan aman dijalankan saat aplikasi aktif maupun WAL (Write-Ahead Logging) sedang berjalan.
+
+Jalankan perintah dari folder `backend/` dengan virtual environment aktif:
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+
+# 1. Membuat file backup baru (disimpan ke backend/backups/)
+python -m scripts.backup
+
+# 2. Memeriksa integritas file backup
+python -m scripts.backup --verify backups/finance-backup-20261018T080000000000Z-a1b2c3d4.db
+
+# 3. Memulihkan (restore) ke lokasi database uji/target
+python -m scripts.backup --restore backups/finance-backup-20261018T080000000000Z-a1b2c3d4.db --target data/finance-restored.db
+```
+
+Catatan keselamatan:
+- File backup diberi nama timestamp UTC otomatis: `finance-backup-YYYYMMDDTHHMMSSZ-<random8>.db`.
+- Seluruh file backup dan database lokal di `backend/data/` dan `backend/backups/` diabaikan oleh Git (`.gitignore`).
+- Proses restore berjalan secara atomik menggunakan file sementara untuk memastikan database target tidak rusak jika terjadi gangguan di tengah proses.
+- Jika database target sudah ada, tambahkan `--force` untuk mengizinkan penimpaan.
 
 ---
 
@@ -352,7 +378,7 @@ finance-tracker/
 │   │   └── security.py      # Proteksi Host dan Origin
 │   ├── alembic/             # Environment dan revision migration
 │   ├── alembic.ini          # Konfigurasi Alembic
-│   ├── scripts/             # Migration, backup pra-upgrade, dan bootstrap
+│   ├── scripts/             # Migration, backup rutin & restore, dan bootstrap
 │   ├── tests/               # Tes model, migration, API fondasi, dan keamanan
 │   ├── data/                # Database lokal (di-ignore Git)
 │   ├── requirements.txt
