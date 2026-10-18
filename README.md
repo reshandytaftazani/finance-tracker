@@ -325,6 +325,38 @@ Endpoint `GET /api/v1/analytics/insights` menyajikan ringkasan analitik berbasis
 
 Bila bulan sebelumnya kosong, `has_baseline` bernilai `false` dan persentase tidak dihitung, mencegah kalkulasi tak tentu (*NaN* atau *infinity*).
 
+Endpoint `GET /api/v1/analytics/forecast` (Task 6.2) menyediakan eksperimen proyeksi pengeluaran bulanan menggunakan rata-rata bergerak 3 bulan (3-Month Moving Average) deterministik dengan evaluasi *temporal backtest* terhadap *baseline naive* (pengeluaran bulan sebelumnya):
+
+```json
+{
+  "month": 10,
+  "year": 2026,
+  "status": "sufficient_data",
+  "message": "Proyeksi berhasil dihitung menggunakan rata-rata bergerak 3 bulan.",
+  "has_sufficient_data": true,
+  "historical_months": [
+    {"month": 7, "year": 2026, "expense": "3000000", "transaction_count": 5},
+    {"month": 8, "year": 2026, "expense": "4000000", "transaction_count": 6},
+    {"month": 9, "year": 2026, "expense": "5000000", "transaction_count": 4}
+  ],
+  "forecast_expense": "4000000",
+  "baseline_expense": "5000000",
+  "evaluation": {
+    "has_backtest": true,
+    "test_points_count": 1,
+    "ma_mae": "1000000",
+    "naive_mae": "2000000",
+    "better_model": "ma3",
+    "explanation": "Model Moving Average 3-bulan lebih akurat dengan rata-rata galat (MAE) Rp 1000000 dibanding baseline naive Rp 2000000 pada 1 periode historis."
+  }
+}
+```
+
+Karakteristik & Integritas Temporal:
+- **Tanpa Proyeksi Palsu:** Jika riwayat transaksi sebelum periode target kurang dari 3 bulan penuh representatif, status bernilai `"insufficient_data"`, `has_sufficient_data: false`, dan `forecast_expense: null`.
+- **Tanpa Data Leakage:** Perhitungan rata-rata bergerak dan evaluasi backtest hanya menggunakan transaksi historis sebelum periode yang diuji.
+- **Evaluasi Backtest Objektif:** Membandingkan MA-3 terhadap baseline naive menggunakan metrik *Mean Absolute Error* (MAE) pada jendela historis masa lalu (memerlukan minimal 4 bulan data representatif).
+
 ---
 
 ## Pengujian dan Verifikasi
