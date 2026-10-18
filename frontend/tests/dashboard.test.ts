@@ -3,6 +3,7 @@ import { test } from "node:test";
 import { formatRupiah } from "../src/lib/formatters.ts";
 import {
   fetchAnalyticsByCategory,
+  fetchAnalyticsForecast,
   fetchAnalyticsInsights,
   fetchAnalyticsSummary,
   fetchRecentTransactions,
@@ -200,3 +201,55 @@ test("fetchAnalyticsInsights rejects unsafe category IDs in response", async (t)
 
   await assert.rejects(fetchAnalyticsInsights(10, 2026), /batas integer aman/i);
 });
+
+test("fetchAnalyticsForecast sends valid month/year and parses response correctly", async (t) => {
+  const controller = new AbortController();
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    const parsed = new URL(String(url));
+    assert.equal(parsed.pathname, "/api/v1/analytics/forecast");
+    assert.deepEqual(Object.fromEntries(parsed.searchParams), { month: "10", year: "2026" });
+    assert.equal(options.signal, controller.signal);
+    return Response.json({
+      month: 10,
+      year: 2026,
+      status: "sufficient_data",
+      message: "Proyeksi berhasil dihitung menggunakan rata-rata bergerak 3 bulan.",
+      has_sufficient_data: true,
+      historical_months: [
+        { month: 7, year: 2026, expense: "3000000", transaction_count: 5 },
+        { month: 8, year: 2026, expense: "4000000", transaction_count: 6 },
+        { month: 9, year: 2026, expense: "5000000", transaction_count: 4 },
+      ],
+      forecast_expense: "4000000",
+      baseline_expense: "5000000",
+      evaluation: {
+        has_backtest: true,
+        test_points_count: 1,
+        ma_mae: "100000",
+        naive_mae: "200000",
+        better_model: "ma3",
+        explanation: "Moving average lebih akurat",
+      },
+    });
+  });
+
+  const forecast = await fetchAnalyticsForecast(10, 2026, controller.signal);
+  assert.equal(forecast.month, 10);
+  assert.equal(forecast.status, "sufficient_data");
+  assert.equal(forecast.has_sufficient_data, true);
+  assert.equal(forecast.forecast_expense, "4000000");
+  assert.equal(forecast.baseline_expense, "5000000");
+  assert.equal(forecast.historical_months.length, 3);
+  assert.equal(forecast.evaluation?.better_model, "ma3");
+});
+
+test("fetchAnalyticsForecast rejects invalid month and year", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => {
+    assert.fail("Invalid month reached the network");
+  });
+  await assert.rejects(fetchAnalyticsForecast(0, 2026), /bulan/i);
+  await assert.rejects(fetchAnalyticsForecast(13, 2026), /bulan/i);
+  await assert.rejects(fetchAnalyticsForecast(10, 0), /tahun/i);
+  await assert.rejects(fetchAnalyticsForecast(10, 10000), /tahun/i);
+});
+

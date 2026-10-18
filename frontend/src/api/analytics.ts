@@ -54,6 +54,34 @@ export interface AnalyticsInsights {
   narratives: string[];
 }
 
+export interface HistoricalMonthExpense {
+  month: number;
+  year: number;
+  expense: string;
+  transaction_count: number;
+}
+
+export interface BacktestEvaluation {
+  has_backtest: boolean;
+  test_points_count: number;
+  ma_mae: string | null;
+  naive_mae: string | null;
+  better_model: "ma3" | "naive" | "tie" | null;
+  explanation: string;
+}
+
+export interface AnalyticsForecast {
+  month: number;
+  year: number;
+  status: "sufficient_data" | "insufficient_data";
+  message: string;
+  has_sufficient_data: boolean;
+  historical_months: HistoricalMonthExpense[];
+  forecast_expense: string | null;
+  baseline_expense: string | null;
+  evaluation: BacktestEvaluation | null;
+}
+
 function assertSafeIdentifier(id: unknown): asserts id is number {
   if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1) {
     throw new Error(
@@ -160,3 +188,16 @@ export async function fetchAnalyticsInsights(
     { signal }
   );
 }
+
+export async function fetchAnalyticsForecast(
+  month: number,
+  year: number,
+  signal?: AbortSignal
+): Promise<AnalyticsForecast> {
+  validatePeriod(month, year);
+  return request<AnalyticsForecast>(
+    `/api/v1/analytics/forecast?month=${month}&year=${year}`,
+    { signal }
+  );
+}
+
