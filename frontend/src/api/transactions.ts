@@ -59,7 +59,10 @@ async function requestResponse(path: string, options: RequestInit = {}, accept =
     } else if (data?.detail === "Category type must match transaction type") {
       errors.category_id = labels.category_id;
     }
-    const message = response.status === 422 ? "Periksa isian transaksi, lalu coba lagi."
+    const message = response.status === 422
+      ? (data?.detail === "min_amount must not exceed max_amount"
+          ? "Nominal minimum tidak boleh melebihi nominal maksimum."
+          : "Periksa isian transaksi, lalu coba lagi.")
       : response.status === 404 ? "Data tidak ditemukan atau sudah dihapus. Muat ulang data, lalu coba lagi."
       : response.status === 409 ? "Perubahan tidak dapat disimpan karena konflik data. Muat ulang, lalu coba lagi."
       : response.status === 503 ? "Backend belum siap. Jalankan migration dan seed sesuai README, lalu coba lagi."
@@ -98,6 +101,15 @@ function filterParams(filters: TransactionFilters): URLSearchParams {
   if (filters.category_id !== "all") {
     assertSafeIdentifier(Number(filters.category_id));
     params.set("category_id", filters.category_id);
+  }
+  if (filters.search && filters.search.trim()) {
+    params.set("search", filters.search.trim());
+  }
+  if (filters.min_amount && filters.min_amount.trim()) {
+    params.set("min_amount", filters.min_amount.trim());
+  }
+  if (filters.max_amount && filters.max_amount.trim()) {
+    params.set("max_amount", filters.max_amount.trim());
   }
   return params;
 }

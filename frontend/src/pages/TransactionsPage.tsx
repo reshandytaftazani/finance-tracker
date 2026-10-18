@@ -1,4 +1,4 @@
-import { Download, Plus } from "lucide-react";
+import { Download, Plus, RotateCcw, Search, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { exportTransactions, fetchCategories, fetchTransactions } from "../api/transactions";
@@ -10,7 +10,16 @@ import { jakartaToday, monthRange } from "../lib/transactions";
 import type { Transaction, TransactionFilters } from "../lib/transactions";
 
 export function TransactionsPage() {
-  const [filters, setFilters] = useState<TransactionFilters>(() => ({ month: jakartaToday().slice(0, 7), type: "all", category_id: "all", page: 1 }));
+  const [filters, setFilters] = useState<TransactionFilters>(() => ({
+    month: jakartaToday().slice(0, 7),
+    type: "all",
+    category_id: "all",
+    page: 1,
+  }));
+  const [searchInput, setSearchInput] = useState("");
+  const [minAmountInput, setMinAmountInput] = useState("");
+  const [maxAmountInput, setMaxAmountInput] = useState("");
+  const [amountError, setAmountError] = useState("");
   const [editor, setEditor] = useState<{ transaction: Transaction | null } | null>(null);
   const [deleting, setDeleting] = useState<Transaction | null>(null);
   const [notice, setNotice] = useState("");
@@ -28,6 +37,36 @@ export function TransactionsPage() {
   const categoryItems = categories.data ?? [];
   const categoriesReady = categories.isSuccess;
   const totalPages = Math.max(1, Math.ceil((list.data?.total ?? 0) / 20));
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const clean = searchInput.trim();
+      setFilters((previous) => {
+        if ((previous.search ?? "") === clean) return previous;
+        return { ...previous, search: clean || undefined, page: 1 };
+      });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const cleanMin = minAmountInput.trim();
+      const cleanMax = maxAmountInput.trim();
+      if (cleanMin && cleanMax && BigInt(cleanMin) > BigInt(cleanMax)) {
+        setAmountError("Nominal minimum tidak boleh melebihi nominal maksimum.");
+        return;
+      }
+      setAmountError("");
+      setFilters((previous) => {
+        const nextMin = cleanMin || undefined;
+        const nextMax = cleanMax || undefined;
+        if (previous.min_amount === nextMin && previous.max_amount === nextMax) return previous;
+        return { ...previous, min_amount: nextMin, max_amount: nextMax, page: 1 };
+      });
+    }, 300);
+    return () => window.clearTimeout(timer);
+  }, [minAmountInput, maxAmountInput]);
 
   useEffect(() => {
     // Export disables the focused control; retry also disappears when its error
@@ -61,6 +100,41 @@ export function TransactionsPage() {
     setNotice("");
     setFilters((previous) => ({ ...previous, ...changes, page: 1 }));
   }
+
+  const hasActiveFilters = Boolean(
+    filters.type !== "all" ||
+    filters.category_id !== "all" ||
+    filters.search ||
+    filters.min_amount ||
+    filters.max_amount ||
+    searchInput ||
+    minAmountInput ||
+    maxAmountInput
+  );
+
+  function clearSearch() {
+    setSearchInput("");
+    setFilters((previous) => ({ ...previous, search: undefined, page: 1 }));
+  }
+
+  function resetFilters() {
+    setSearchInput("");
+    setMinAmountInput("");
+    setMaxAmountInput("");
+    setAmountError("");
+    setExportError("");
+    setNotice("");
+    setFilters({
+      month: jakartaToday().slice(0, 7),
+      type: "all",
+      category_id: "all",
+      page: 1,
+      search: undefined,
+      min_amount: undefined,
+      max_amount: undefined,
+    });
+  }
+
   function restoreFocus() {
     focusAfterClose.current = true;
   }
@@ -136,25 +210,103 @@ export function TransactionsPage() {
         closeEditor();
       }} />}
 
-      <section aria-label="Filter transaksi" className="finance-panel finance-filter-bar grid gap-4 sm:grid-cols-3">
-        <div className="transaction-field">
-          <label htmlFor="filter-month">Bulan</label>
-          <input id="filter-month" name="filter-month" className="transaction-control" type="month" min="0001-01" max="9999-12" value={filters.month} aria-invalid={!validMonth} aria-describedby="filter-month-error" onChange={(event) => updateFilter({ month: event.target.value })} />
-          <span id="filter-month-error" className="transaction-field-error">{!validMonth && "Pilih bulan yang valid untuk menampilkan transaksi."}</span>
+      <section aria-label="Filter transaksi" className="finance-panel finance-filter-bar space-y-4">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="transaction-field">
+            <label htmlFor="filter-month">Bulan</label>
+            <input id="filter-month" name="filter-month" className="transaction-control" type="month" min="0001-01" max="9999-12" value={filters.month} aria-invalid={!validMonth} aria-describedby="filter-month-error" onChange={(event) => updateFilter({ month: event.target.value })} />
+            <span id="filter-month-error" className="transaction-field-error">{!validMonth && "Pilih bulan yang valid untuk menampilkan transaksi."}</span>
+          </div>
+          <div className="transaction-field">
+            <label htmlFor="filter-type">Tipe</label>
+            <select id="filter-type" name="filter-type" className="transaction-control" value={filters.type} onChange={(event) => updateFilter({ type: event.target.value as TransactionFilters["type"], category_id: "all" })}>
+              <option value="all">Semua tipe</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option>
+            </select>
+          </div>
+          <div className="transaction-field">
+            <label htmlFor="filter-category">Kategori</label>
+            <select id="filter-category" name="filter-category" className="transaction-control" value={filters.category_id} disabled={!categoriesReady} onChange={(event) => updateFilter({ category_id: event.target.value })}>
+              <option value="all">Semua kategori</option>
+              {categoryItems.filter((category) => filters.type === "all" || category.type === filters.type).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
+          </div>
         </div>
-        <div className="transaction-field">
-          <label htmlFor="filter-type">Tipe</label>
-          <select id="filter-type" name="filter-type" className="transaction-control" value={filters.type} onChange={(event) => updateFilter({ type: event.target.value as TransactionFilters["type"], category_id: "all" })}>
-            <option value="all">Semua tipe</option><option value="income">Pemasukan</option><option value="expense">Pengeluaran</option>
-          </select>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="transaction-field">
+            <label htmlFor="filter-search">Cari Deskripsi / Catatan</label>
+            <div className="relative flex items-center">
+              <Search aria-hidden="true" className="pointer-events-none absolute left-3 h-4 w-4 text-slate-400 dark:text-slate-500" />
+              <input
+                id="filter-search"
+                name="filter-search"
+                type="text"
+                maxLength={100}
+                className="transaction-control pl-9 pr-9"
+                placeholder="Cari transaksi…"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  aria-label="Hapus kata kunci pencarian"
+                  className="absolute right-2.5 rounded-full p-1 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
+                  onClick={clearSearch}
+                >
+                  <X aria-hidden="true" className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="transaction-field">
+            <label htmlFor="filter-min-amount">Nominal Minimal (Rp)</label>
+            <input
+              id="filter-min-amount"
+              name="filter-min-amount"
+              type="text"
+              inputMode="numeric"
+              className="transaction-control"
+              placeholder="Contoh: 10000"
+              value={minAmountInput}
+              aria-invalid={Boolean(amountError)}
+              onChange={(event) => setMinAmountInput(event.target.value.replace(/\D/g, ""))}
+            />
+          </div>
+
+          <div className="transaction-field">
+            <label htmlFor="filter-max-amount">Nominal Maksimal (Rp)</label>
+            <input
+              id="filter-max-amount"
+              name="filter-max-amount"
+              type="text"
+              inputMode="numeric"
+              className="transaction-control"
+              placeholder="Contoh: 500000"
+              value={maxAmountInput}
+              aria-invalid={Boolean(amountError)}
+              onChange={(event) => setMaxAmountInput(event.target.value.replace(/\D/g, ""))}
+            />
+          </div>
         </div>
-        <div className="transaction-field">
-          <label htmlFor="filter-category">Kategori</label>
-          <select id="filter-category" name="filter-category" className="transaction-control" value={filters.category_id} disabled={!categoriesReady} onChange={(event) => updateFilter({ category_id: event.target.value })}>
-            <option value="all">Semua kategori</option>
-            {categoryItems.filter((category) => filters.type === "all" || category.type === filters.type).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-          </select>
-        </div>
+
+        {amountError && (
+          <p role="alert" className="text-sm font-medium text-red-600 dark:text-red-400">{amountError}</p>
+        )}
+
+        {hasActiveFilters && (
+          <div className="flex justify-end pt-1">
+            <button
+              type="button"
+              className="transaction-button inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              onClick={resetFilters}
+            >
+              <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
+              Reset filter
+            </button>
+          </div>
+        )}
       </section>
 
       <section aria-label="Daftar transaksi" aria-busy={list.isFetching} className="finance-panel overflow-hidden">
@@ -168,7 +320,7 @@ export function TransactionsPage() {
             {list.isFetching && <p role="status" className="px-4 pt-3 text-sm text-slate-600">Memperbarui transaksi…</p>}
             <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabel transaksi, geser untuk melihat semua kolom">
               <table className="finance-table w-full min-w-[760px] border-collapse text-left text-sm">
-                <caption className="sr-only">Transaksi bulan {filters.month}, sesuai filter tipe dan kategori.</caption>
+                <caption className="sr-only">Transaksi bulan {filters.month}, sesuai filter tipe, kategori, pencarian, dan nominal.</caption>
                 <thead><tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
                   <th scope="col" className="px-4 py-3 font-medium">Tanggal</th><th scope="col" className="px-4 py-3 font-medium">Kategori</th>
                   <th scope="col" className="px-4 py-3 font-medium">Deskripsi</th><th scope="col" className="px-4 py-3 font-medium">Tipe</th>
@@ -187,8 +339,14 @@ export function TransactionsPage() {
                     </div></td>
                   </tr>)}
                   {list.data?.items.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center">
-                    <h2 className="font-medium text-slate-900">Tidak ada transaksi yang ditemukan</h2>
-                    <p className="mt-2 text-slate-600">Belum ada catatan yang sesuai filter. Ubah filter atau tambah transaksi baru.</p>
+                    <h2 className="font-medium text-slate-900 dark:text-slate-100">Tidak ada transaksi yang ditemukan</h2>
+                    <p className="mt-2 text-slate-600 dark:text-slate-400">Belum ada catatan yang sesuai filter. Ubah filter atau tambah transaksi baru.</p>
+                    {hasActiveFilters && (
+                      <button type="button" onClick={resetFilters} className="transaction-button mt-4 inline-flex items-center gap-1.5 text-xs">
+                        <RotateCcw aria-hidden="true" className="h-3.5 w-3.5" />
+                        Reset semua filter
+                      </button>
+                    )}
                   </td></tr>}
                 </tbody>
               </table>

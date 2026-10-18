@@ -76,6 +76,40 @@ test("list sends only supported filters with an abort signal", async (t) => {
   assert.equal((await fetchTransactions({ month: "2024-02", type: "expense", category_id: "1", page: 2 }, controller.signal)).total, 22);
 });
 
+test("list and export send search, min_amount, and max_amount when present", async (t) => {
+  const controller = new AbortController();
+  t.mock.method(globalThis, "fetch", async (url, options) => {
+    const parsed = new URL(String(url));
+    assert.equal(parsed.pathname, "/api/v1/transactions");
+    assert.deepEqual(Object.fromEntries(parsed.searchParams), {
+      start_date: "2024-02-01",
+      end_date: "2024-02-29",
+      type: "expense",
+      category_id: "1",
+      search: "kopi",
+      min_amount: "15000",
+      max_amount: "50000",
+      page: "1",
+      page_size: "20",
+    });
+    assert.equal(options.signal, controller.signal);
+    return Response.json({ items: [], total: 1, page: 1, page_size: 20 });
+  });
+  const result = await fetchTransactions(
+    {
+      month: "2024-02",
+      type: "expense",
+      category_id: "1",
+      search: "  kopi  ",
+      min_amount: "15000",
+      max_amount: "50000",
+      page: 1,
+    },
+    controller.signal
+  );
+  assert.equal(result.total, 1);
+});
+
 test("all categories are fetched across pages, not silently capped at 100", async (t) => {
   t.mock.method(globalThis, "fetch", async (url) => {
     const params = new URL(String(url)).searchParams;

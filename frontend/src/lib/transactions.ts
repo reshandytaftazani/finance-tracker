@@ -35,6 +35,9 @@ export interface TransactionFilters {
   type: TransactionType | "all";
   category_id: string;
   page: number;
+  search?: string;
+  min_amount?: string;
+  max_amount?: string;
 }
 
 const leapYear = (year: number) => year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);

@@ -6,7 +6,7 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, Response
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 from sqlmodel import Session, select
 
 from app.api.common import (
@@ -18,7 +18,13 @@ from app.api.common import (
     commit_or_conflict,
     find_category,
 )
-from app.models import Category, Transaction, TransactionType, utc_now
+from app.models import (
+    MAX_AMOUNT_RUPIAH,
+    Category,
+    Transaction,
+    TransactionType,
+    utc_now,
+)
 from app.schemas import (
     LocalDateInput,
     TransactionCreate,
@@ -54,6 +60,10 @@ def validate_category(
         )
 
 
+def escape_like(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def transaction_predicates(
     session: Session,
     owner_id: int,
@@ -61,10 +71,17 @@ def transaction_predicates(
     end_date: date | None,
     category_id: int | None,
     kind: TransactionType | None,
+    search: str | None = None,
+    min_amount: int | None = None,
+    max_amount: int | None = None,
 ):
     if start_date is not None and end_date is not None and start_date > end_date:
         raise HTTPException(
             status_code=422, detail="start_date must not exceed end_date"
+        )
+    if min_amount is not None and max_amount is not None and min_amount > max_amount:
+        raise HTTPException(
+            status_code=422, detail="min_amount must not exceed max_amount"
         )
     predicates = [Transaction.owner_id == owner_id]
     if start_date is not None:
@@ -76,6 +93,22 @@ def transaction_predicates(
         predicates.append(Transaction.category_id == category_id)
     if kind is not None:
         predicates.append(Transaction.type == kind)
+    if min_amount is not None:
+        predicates.append(Transaction.amount_rupiah >= min_amount)
+    if max_amount is not None:
+        predicates.append(Transaction.amount_rupiah <= max_amount)
+    if search is not None:
+        clean_search = search.strip()
+        if clean_search:
+            pattern = f"%{escape_like(clean_search.lower())}%"
+            predicates.append(
+                or_(
+                    func.lower(Transaction.description).like(pattern, escape="\\"),
+                    func.lower(func.coalesce(Transaction.notes, "")).like(
+                        pattern, escape="\\"
+                    ),
+                )
+            )
     return predicates
 
 
@@ -87,11 +120,22 @@ def list_transactions(
     end_date: LocalDateInput | None = None,
     category_id: Annotated[int | None, Query(ge=1, le=2**63 - 1)] = None,
     type: TransactionType | None = None,
+    search: Annotated[str | None, Query(max_length=100)] = None,
+    min_amount: Annotated[int | None, Query(ge=1, le=MAX_AMOUNT_RUPIAH)] = None,
+    max_amount: Annotated[int | None, Query(ge=1, le=MAX_AMOUNT_RUPIAH)] = None,
     page: PageNumber = 1,
     page_size: PageSize = 20,
 ):
     predicates = transaction_predicates(
-        session, owner.id, start_date, end_date, category_id, type
+        session,
+        owner.id,
+        start_date,
+        end_date,
+        category_id,
+        type,
+        search,
+        min_amount,
+        max_amount,
     )
     total = session.exec(
         select(func.count()).select_from(Transaction).where(*predicates)
@@ -130,10 +174,21 @@ def export_transactions(
     end_date: LocalDateInput | None = None,
     category_id: Annotated[int | None, Query(ge=1, le=2**63 - 1)] = None,
     type: TransactionType | None = None,
+    search: Annotated[str | None, Query(max_length=100)] = None,
+    min_amount: Annotated[int | None, Query(ge=1, le=MAX_AMOUNT_RUPIAH)] = None,
+    max_amount: Annotated[int | None, Query(ge=1, le=MAX_AMOUNT_RUPIAH)] = None,
 ):
     """Export all owner-scoped matches, not just the current pagination page."""
     predicates = transaction_predicates(
-        session, owner.id, start_date, end_date, category_id, type
+        session,
+        owner.id,
+        start_date,
+        end_date,
+        category_id,
+        type,
+        search,
+        min_amount,
+        max_amount,
     )
     rows = session.exec(
         select(
