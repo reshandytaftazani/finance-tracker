@@ -1,5 +1,7 @@
 # Personal Finance Tracker
 
+[![CI](https://github.com/reshandytaftazani/finance-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/reshandytaftazani/finance-tracker/actions/workflows/ci.yml)
+
 Sebuah aplikasi pencatatan keuangan pribadi untuk satu pemilik, dirancang untuk penggunaan lokal pada satu komputer pribadi. Antarmuka menggunakan Bahasa Indonesia dan mata uang Rupiah (IDR).
 
 Roadmap dan catatan task tersimpan di `PLANNING.local.md` pada salinan lokal dan sengaja tidak disertakan di repository.
@@ -410,6 +412,12 @@ Dashboard diuji dengan nominal besar pada lebar 320, 390, 768, dan 1366px; tabel
 tetap dapat digeser horizontal pada layar kecil. Kontras teks sekunder dashboard diperiksa
 dari warna hasil render browser. Ini bukan audit aksesibilitas menyeluruh atau sertifikasi WCAG.
 
+### Continuous Integration (CI)
+
+Proyek dilengkapi workflow GitHub Actions pada `.github/workflows/ci.yml` yang berjalan otomatis pada setiap `push` dan `pull_request` ke branch `main`:
+- **Backend Job (Python 3.13):** Memasang dependensi dengan pip caching, menjalankan `python -m ruff check .` untuk linting, dan mengeksekusi seluruh 476 tes unit/API dengan `pytest`.
+- **Frontend Job (Node.js 24):** Memasang dependensi dengan npm caching, menjalankan `npm run lint` (oxlint), `npm run type-check` (TypeScript tsc), `npm test` (unit tests), dan `npm run build` (build produksi Vite).
+
 ### Tampilan Modern Finance
 
 Dashboard, Transaksi, dan Budget menggunakan satu sistem light slate/biru: aksi utama dan
@@ -430,6 +438,9 @@ menggantikan pengujian screen reader/perangkat fisik.
 
 ```text
 finance-tracker/
+├── .github/
+│   └── workflows/
+│       └── ci.yml           # Workflow Continuous Integration (GitHub Actions)
 ├── backend/
 │   ├── app/
 │   │   ├── api/             # Router dan controller endpoint
@@ -438,7 +449,7 @@ finance-tracker/
 │   │   ├── main.py          # Inisialisasi aplikasi FastAPI dan middleware
 │   │   ├── models.py        # Model dan constraint domain
 │   │   ├── schemas.py       # Schema API create/update/read
-│   │   ├── services/        # Agregasi exact bulanan dan proteksi teks CSV
+│   │   ├── services/        # Agregasi exact bulanan, forecasting, dan CSV
 │   │   ├── validation.py    # Validasi nominal, tanggal, dan teks
 │   │   ├── dependencies.py  # Resolusi kepemilikan data server-side
 │   │   └── security.py      # Proteksi Host dan Origin
