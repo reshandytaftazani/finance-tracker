@@ -14,8 +14,8 @@ Proyek sedang membangun fondasi MVP:
 - **Backend:** FastAPI, database SQLite dengan foreign key aktif, synchronous session per request, proteksi host dan origin pada request mutasi, health endpoint, dan pengujian otomatis via pytest.
 - **Frontend:** React, TypeScript, dan Vite dengan type-checking, linter, serta konfigurasi build produksi.
 - **Model & validasi:** model Owner/Category/Transaction dengan constraint ownership, nominal rupiah integer, normalisasi nama, timestamp UTC, dan schema create/update/read. API nominal menggunakan string digit; client tidak dapat mengirim `owner_id` atau `normalized_name`.
-- **Mode akses & autentikasi:** mode akses ditetapkan eksplisit sebagai single-owner local-only untuk MVP tanpa endpoint register/login/profile publik. Server menyelesaikan kepemilikan data secara internal via bootstrap ID `1` (`app.dependencies.get_current_owner_id`), menolak input/override ownership dari client, dan menolak akses non-local tanpa autentikasi.
-- **Migration & seed:** migration Alembic awal dan bootstrap owner/kategori tersedia melalui command eksplisit. Tidak ada transaksi demo.
+- **Mode akses & autentikasi:** mendukung mode lokal default tanpa login (`APP_AUTH_ENABLED=false`) dan mode autentikasi pemilik (`APP_AUTH_ENABLED=true` / non-local). Password pemilik di-hash menggunakan Argon2id dan diatur via CLI lokal `python -m scripts.auth set-password` (tanpa endpoint registrasi publik). Sesi disimpan dalam cookie HttpOnly `finance_session` dengan hash SHA-256 pada tabel `user_sessions`. Halaman `/login` modern dan tombol logout tersedia di navigasi.
+- **Migration & seed:** migration Alembic (`0003_owner_password_and_sessions`) dan bootstrap owner/kategori tersedia melalui command eksplisit. Tidak ada transaksi demo.
 - **API CRUD:** transaksi/kategori dengan filter, pagination, PATCH parsial, dan isolasi owner. Kategori yang terpakai tidak dapat dihapus atau diubah tipenya.
 - **Halaman transaksi & export CSV:** tambah/edit/hapus melalui API, filter bulan/kategori/tipe, pagination, validasi inline, konfirmasi hapus, loading/error/retry, serta export CSV aman. Nominal dikirim sebagai string digit; perubahan memperbarui list dan menginvalidasi cache analytics. ID melebihi `Number.MAX_SAFE_INTEGER` ditolak di browser (termasuk pembacaan) untuk mencegah mutasi ke ID yang dibulatkan; dukungan penuh ID 64-bit belum tersedia di UI.
 - **Dashboard keuangan:** metrik total pemasukan, total pengeluaran, dan arus kas bersih (net cash flow), pemilih periode bulan, distribusi alokasi pengeluaran per kategori, serta daftar transaksi terbaru yang terhubung langsung ke API analytics dan transaksi.
@@ -111,7 +111,7 @@ Jalankan command dari `backend/`, dengan `.venv` aktif dan **backend dihentikan*
 URL database mengikuti `APP_DATABASE_URL` / `.env`, sama dengan aplikasi. Untuk menguji pada salinan,
 ubah `APP_DATABASE_URL` di terminal tersebut ke path SQLite salinan, bukan DB pribadi.
 
-- `python -m scripts.migrate` menerapkan revision Alembic terbaru (`0002_budgets`). Bila ada upgrade tertunda
+- `python -m scripts.migrate` menerapkan revision Alembic terbaru (`0003_owner_password_and_sessions`). Bila ada upgrade tertunda
   dan database berisi data, command membuat snapshot melalui SQLite backup API di `backend/backups/`,
   lalu memeriksa integritasnya. Backup gagal → migration dibatalkan. File lama tidak ditimpa.
 - `python -m scripts.seed` membuat owner lokal ID `1` beserta Gaji, Makanan, Transport, dan Hiburan
@@ -130,6 +130,33 @@ pada path terpisah sebelum pemulihan. Jangan menimpa DB aktif atau mengabaikan f
 Downgrade migration awal menolak database yang berisi owner/kategori/transaksi; gunakan backup terverifikasi.
 Backup ini khusus pengamanan migration; untuk backup & restore rutin, gunakan `python -m scripts.backup`.
 Simpan salinan privat di lokasi terpisah juga. Migration PostgreSQL hanya diuji sebagai DDL offline, bukan pada server PostgreSQL.
+
+### Autentikasi Pemilik & Session (Task 2.2)
+
+Aplikasi menyediakan mekanisme proteksi single-owner dengan hashing password Argon2id dan session cookie:
+
+1. **Atur Password Pemilik via CLI:**
+   ```powershell
+   python -m scripts.auth set-password
+   ```
+   Atau menggunakan environment variable:
+   ```powershell
+   python -m scripts.auth set-password --env
+   # Membaca password dari APP_OWNER_PASSWORD
+   ```
+
+2. **Aktifkan Autentikasi di `.env`:**
+   ```env
+   APP_AUTH_ENABLED=true
+   ```
+
+3. **Karakteristik Keamanan:**
+   - **Tanpa Registrasi Publik:** Kredensial hanya dapat diatur secara lokal via server CLI.
+   - **Password Hashing:** Menggunakan **Argon2id** (`argon2-cffi`).
+   - **Session Cookie:** Opaque random token 32-byte dikirim ke browser via cookie `finance_session` (`HttpOnly`, `SameSite=Lax`).
+   - **Token Hash di DB:** Database hanya menyimpan hash SHA-256 token pada tabel `user_sessions`, token plaintext tidak disimpan.
+   - **Guard Endpoint:** Saat `APP_AUTH_ENABLED=true` (atau non-local), seluruh akses data mengembalikan `401 Unauthorized` bila tidak terotentikasi.
+   - **Frontend Guard:** SPA otomatis mendeteksi sesi via `/api/v1/auth/me`, mengarahkan pengguna ke `/login`, dan menyediakan tombol Keluar pada navigasi header.
 
 ### Budget Bulanan (API)
 
