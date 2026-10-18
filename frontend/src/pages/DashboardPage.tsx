@@ -111,10 +111,10 @@ export const DashboardPage: React.FC = () => {
 
   const netStatus =
     netCashFlowBigInt > 0n
-      ? { label: "Surplus", style: "bg-emerald-50 text-emerald-700 border-emerald-200" }
+      ? { label: "Surplus", style: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800" }
       : netCashFlowBigInt < 0n
-      ? { label: "Defisit", style: "bg-rose-50 text-rose-700 border-rose-200" }
-      : { label: "Seimbang", style: "bg-slate-50 text-slate-700 border-slate-200" };
+      ? { label: "Defisit", style: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800" }
+      : { label: "Seimbang", style: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700" };
 
   // Use one response for both the numerator and denominator. Summary may
   // still be loading, fail, or reflect a different snapshot after a mutation.
@@ -140,7 +140,7 @@ export const DashboardPage: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {/* Period Selector */}
-          <div className="flex items-center gap-2 bg-[var(--card)] px-3 rounded-xl border border-[var(--border)]">
+          <div className="flex items-center gap-2 bg-[var(--card)] px-3 rounded-xl border border-[var(--border)] shadow-2xs">
             <Calendar className="w-4 h-4 text-[var(--muted)]" aria-hidden="true" />
             <label htmlFor="dashboard-period" className="text-xs font-medium text-[var(--muted)]">
               Periode:
@@ -152,7 +152,7 @@ export const DashboardPage: React.FC = () => {
               max="9999-12"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="min-h-11 text-sm font-medium bg-transparent border-none text-[var(--foreground)] cursor-pointer"
+              className="min-h-11 text-sm font-medium bg-transparent border-none text-[var(--foreground)] cursor-pointer focus:outline-none"
               aria-label="Pilih bulan dan tahun periode dashboard"
               aria-invalid={!validMonth}
               aria-describedby={!validMonth ? "dashboard-period-error" : undefined}
@@ -163,7 +163,7 @@ export const DashboardPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setMonth(defaultMonth)}
-              className="transaction-button inline-flex items-center gap-2"
+              className="transaction-button inline-flex items-center gap-2 text-xs"
               title="Kembali ke bulan berjalan"
             >
               <RotateCcw aria-hidden="true" className="w-3.5 h-3.5" />
@@ -173,7 +173,7 @@ export const DashboardPage: React.FC = () => {
 
           <Link
             to="/transactions"
-            className="transaction-button transaction-primary inline-flex items-center justify-center gap-2"
+            className="transaction-button transaction-primary inline-flex items-center justify-center gap-2 shadow-xs"
           >
             <Plus aria-hidden="true" className="w-4 h-4" />
             Catat Transaksi
@@ -186,7 +186,7 @@ export const DashboardPage: React.FC = () => {
         <div
           role="alert"
           id="dashboard-period-error"
-          className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900"
+          className="rounded-xl border border-amber-200 bg-amber-50/90 dark:border-amber-900/60 dark:bg-amber-950/40 p-4 text-sm text-amber-900 dark:text-amber-200 shadow-xs"
         >
           Pilih periode bulan yang valid (format YYYY-MM antara tahun 0001 hingga 9999) untuk melihat dashboard.
         </div>
@@ -196,11 +196,11 @@ export const DashboardPage: React.FC = () => {
       {hasAnyError && (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          className="rounded-xl border border-rose-200 bg-rose-50/90 dark:border-rose-900/60 dark:bg-rose-950/40 p-4 text-sm text-rose-800 dark:text-rose-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs"
         >
           <div>
-            <h2 className="font-semibold text-red-900">Gagal memuat data dashboard</h2>
-            <p className="mt-0.5 text-xs text-red-700">
+            <h2 className="font-semibold text-rose-900 dark:text-rose-100">Gagal memuat data dashboard</h2>
+            <p className="mt-0.5 text-xs text-rose-700 dark:text-rose-300">
               {summaryQuery.error?.message ||
                 breakdownQuery.error?.message ||
                 recentQuery.error?.message ||
@@ -211,7 +211,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <button
             type="button"
-            className="transaction-button text-xs py-1.5 px-3 w-fit"
+            className="transaction-button text-xs py-1.5 px-3 w-fit border-rose-300 dark:border-rose-800 text-rose-900 dark:text-rose-100 hover:bg-rose-100 dark:hover:bg-rose-900/40"
             onClick={() => {
               void summaryQuery.refetch();
               void breakdownQuery.refetch();
@@ -230,72 +230,72 @@ export const DashboardPage: React.FC = () => {
         {/* Pemasukan */}
         <article className="finance-panel finance-metric">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-600">
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Total Pemasukan
             </span>
-            <div className="p-1.5 rounded-md bg-emerald-50 text-emerald-600">
+            <div className="p-1.5 rounded-md bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 dark:border dark:border-emerald-900/40">
               <ArrowDownRight className="w-4 h-4" aria-hidden="true" />
             </div>
           </div>
           <div className="mt-3">
             {summaryQuery.isPending && validMonth ? (
-              <div className="h-8 w-32 bg-slate-100 animate-pulse rounded my-1" />
+              <div className="h-8 w-32 bg-slate-100 dark:bg-slate-800 animate-pulse rounded my-1" />
             ) : summaryUnavailable ? (
-              <p className="text-sm text-slate-600">Data tidak tersedia</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Data tidak tersedia</p>
             ) : (
-              <Money amount={summaryQuery.data?.income ?? "0"} className="finance-metric-amount text-slate-900" />
+              <Money amount={summaryQuery.data?.income ?? "0"} className="finance-metric-amount text-slate-900 dark:text-slate-100" />
             )}
-            <p className="text-xs text-slate-600 mt-2">Periode {periodLabel}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Periode {periodLabel}</p>
           </div>
         </article>
 
         {/* Pengeluaran */}
         <article className="finance-panel finance-metric">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-slate-600">
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
               Total Pengeluaran
             </span>
-            <div className="p-1.5 rounded-md bg-rose-50 text-rose-600">
+            <div className="p-1.5 rounded-md bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 dark:border dark:border-rose-900/40">
               <ArrowUpRight className="w-4 h-4" aria-hidden="true" />
             </div>
           </div>
           <div className="mt-3">
             {summaryQuery.isPending && validMonth ? (
-              <div className="h-8 w-32 bg-slate-100 animate-pulse rounded my-1" />
+              <div className="h-8 w-32 bg-slate-100 dark:bg-slate-800 animate-pulse rounded my-1" />
             ) : summaryUnavailable ? (
-              <p className="text-sm text-slate-600">Data tidak tersedia</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Data tidak tersedia</p>
             ) : (
-              <Money amount={summaryQuery.data?.expense ?? "0"} className="finance-metric-amount text-slate-900" />
+              <Money amount={summaryQuery.data?.expense ?? "0"} className="finance-metric-amount text-slate-900 dark:text-slate-100" />
             )}
-            <p className="text-xs text-slate-600 mt-2">Periode {periodLabel}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Periode {periodLabel}</p>
           </div>
         </article>
 
         {/* Arus Kas Bersih */}
         <article className="finance-panel finance-metric finance-metric-main">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-900">
+            <span className="text-sm font-semibold text-blue-900 dark:text-blue-200">
               Arus Kas Bersih
             </span>
-            <div className="p-1.5 rounded-md bg-blue-100 text-blue-700">
+            <div className="p-1.5 rounded-md bg-blue-100 text-blue-700 dark:bg-blue-900/60 dark:text-blue-300">
               <Wallet className="w-4 h-4" aria-hidden="true" />
             </div>
           </div>
           <div className="mt-3">
             {summaryQuery.isPending && validMonth ? (
-              <div className="h-8 w-32 bg-slate-100 animate-pulse rounded my-1" />
+              <div className="h-8 w-32 bg-slate-100 dark:bg-slate-800 animate-pulse rounded my-1" />
             ) : summaryUnavailable ? (
-              <p className="text-sm text-slate-600">Data tidak tersedia</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Data tidak tersedia</p>
             ) : (
               <div className="flex flex-wrap items-baseline gap-3">
                 <Money
                   amount={summaryQuery.data?.net_cash_flow ?? "0"}
                   className={`finance-metric-amount min-w-0 ${
                     netCashFlowBigInt > 0n
-                      ? "text-emerald-700"
+                      ? "text-emerald-700 dark:text-emerald-400"
                       : netCashFlowBigInt < 0n
-                      ? "text-rose-700"
-                      : "text-slate-900"
+                      ? "text-rose-700 dark:text-rose-400"
+                      : "text-slate-900 dark:text-slate-100"
                   }`}
                 />
                 {summaryQuery.data && (
@@ -307,7 +307,7 @@ export const DashboardPage: React.FC = () => {
                 )}
               </div>
             )}
-            <p className="text-xs text-blue-800 mt-2">Pemasukan dikurangi pengeluaran</p>
+            <p className="text-xs text-blue-800/90 dark:text-blue-300/80 mt-2 font-medium">Pemasukan dikurangi pengeluaran</p>
           </div>
         </article>
       </section>
@@ -319,12 +319,12 @@ export const DashboardPage: React.FC = () => {
       >
         <div className="finance-panel-heading flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-blue-600" aria-hidden="true" />
-            <h2 className="text-base font-semibold text-slate-900">
+            <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
               Sorotan & Analisis Periode Ini
             </h2>
           </div>
-          <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-full border border-slate-200 dark:border-slate-700">
             Analisis Aturan
           </span>
         </div>
@@ -332,11 +332,11 @@ export const DashboardPage: React.FC = () => {
         {insightsQuery.isPending && validMonth ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 bg-slate-100 animate-pulse rounded-lg" />
+              <div key={i} className="h-20 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />
             ))}
           </div>
         ) : insightsQuery.isError ? (
-          <div className="py-4 text-center text-slate-600">
+          <div className="py-4 text-center text-slate-600 dark:text-slate-400">
             <p className="text-sm">Gagal memuat analisis sorotan keuangan.</p>
             <button
               type="button"
@@ -347,19 +347,19 @@ export const DashboardPage: React.FC = () => {
             </button>
           </div>
         ) : !insightsQuery.data ? (
-          <p className="text-sm text-slate-500 py-2">Data analitik tidak tersedia.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 py-2">Data analitik tidak tersedia.</p>
         ) : (
           <div className="space-y-4 pt-1">
             {/* Tiga Kartu Ringkasan Aturan */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 1. Perbandingan Bulan-ke-Bulan (MoM) */}
-              <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-xs font-medium text-slate-500 mb-2">
+              <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
                   <span>Tren Pengeluaran (vs Bulan Lalu)</span>
                   {insightsQuery.data.comparison.direction === "up" ? (
-                    <TrendingUp className="w-4 h-4 text-rose-600" aria-hidden="true" />
+                    <TrendingUp className="w-4 h-4 text-rose-600 dark:text-rose-400" aria-hidden="true" />
                   ) : insightsQuery.data.comparison.direction === "down" ? (
-                    <TrendingDown className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+                    <TrendingDown className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                   ) : (
                     <Minus className="w-4 h-4 text-slate-400" aria-hidden="true" />
                   )}
@@ -370,10 +370,10 @@ export const DashboardPage: React.FC = () => {
                       <span
                         className={`text-lg font-bold ${
                           insightsQuery.data.comparison.direction === "up"
-                            ? "text-rose-700"
+                            ? "text-rose-700 dark:text-rose-400"
                             : insightsQuery.data.comparison.direction === "down"
-                            ? "text-emerald-700"
-                            : "text-slate-800"
+                            ? "text-emerald-700 dark:text-emerald-400"
+                            : "text-slate-800 dark:text-slate-200"
                         }`}
                       >
                         {insightsQuery.data.comparison.direction === "up"
@@ -382,75 +382,75 @@ export const DashboardPage: React.FC = () => {
                           ? `-${insightsQuery.data.comparison.percentage}%`
                           : "Stabil"}
                       </span>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
                         ({insightsQuery.data.comparison.direction === "up" ? "Membengkak" : insightsQuery.data.comparison.direction === "down" ? "Lebih Hemat" : "Sama"})
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600 mt-1">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                       Bulan lalu: {formatRupiah(insightsQuery.data.comparison.previous_expense ?? "0")}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Belum ada data pengeluaran bulan sebelumnya untuk pembanding.
                   </p>
                 )}
               </div>
 
               {/* 2. Kategori Pengeluaran Terbesar */}
-              <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-xs font-medium text-slate-500 mb-2">
+              <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
                   <span>Kategori Terbesar</span>
-                  <PieChart className="w-4 h-4 text-blue-600" aria-hidden="true" />
+                  <PieChart className="w-4 h-4 text-blue-600 dark:text-blue-400" aria-hidden="true" />
                 </div>
                 {insightsQuery.data.top_category.has_data && insightsQuery.data.top_category.category_name ? (
                   <div>
                     <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-base font-bold text-slate-900 truncate">
+                      <span className="text-base font-bold text-slate-900 dark:text-slate-100 truncate">
                         {insightsQuery.data.top_category.category_name}
                       </span>
-                      <span className="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                      <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800">
                         {insightsQuery.data.top_category.percentage_of_total}%
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600 mt-1">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                       Nominal: {formatRupiah(insightsQuery.data.top_category.expense ?? "0")}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Belum ada pengeluaran yang tercatat pada bulan ini.
                   </p>
                 )}
               </div>
 
               {/* 3. Rasio Tabungan / Status Kas */}
-              <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-xs font-medium text-slate-500 mb-2">
+              <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">
                   <span>Kesehatan Arus Kas</span>
-                  <Wallet className="w-4 h-4 text-emerald-600" aria-hidden="true" />
+                  <Wallet className="w-4 h-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
                 </div>
                 {insightsQuery.data.cash_flow.status === "surplus" && insightsQuery.data.cash_flow.savings_rate_percentage ? (
                   <div>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-lg font-bold text-emerald-700">
+                      <span className="text-lg font-bold text-emerald-700 dark:text-emerald-400">
                         {insightsQuery.data.cash_flow.savings_rate_percentage}%
                       </span>
-                      <span className="text-xs text-emerald-600 font-medium">Tingkat Tabungan</span>
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Tingkat Tabungan</span>
                     </div>
-                    <p className="text-xs text-slate-600 mt-1">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                       Porsi pemasukan yang berhasil disisihkan bulan ini.
                     </p>
                   </div>
                 ) : insightsQuery.data.cash_flow.status === "deficit" ? (
                   <div>
-                    <span className="text-base font-bold text-rose-700">Arus Kas Defisit</span>
-                    <p className="text-xs text-slate-600 mt-1">
+                    <span className="text-base font-bold text-rose-700 dark:text-rose-400">Arus Kas Defisit</span>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                       Pengeluaran melampaui pemasukan bulan ini.
                     </p>
                   </div>
                 ) : (
-                  <p className="text-xs text-slate-500 mt-1">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     {insightsQuery.data.cash_flow.status === "balanced"
                       ? "Arus kas seimbang antara pemasukan dan pengeluaran."
                       : "Belum ada aktivitas transaksi bulan ini."}
@@ -461,9 +461,9 @@ export const DashboardPage: React.FC = () => {
 
             {/* Poin Kesimpulan Naratif */}
             {insightsQuery.data.narratives.length > 0 && (
-              <div className="p-3.5 rounded-lg bg-blue-50/60 border border-blue-100 flex items-start gap-2.5">
-                <Lightbulb className="w-4 h-4 text-blue-700 mt-0.5 shrink-0" aria-hidden="true" />
-                <ul className="text-xs text-slate-700 space-y-1 list-disc list-inside">
+              <div className="p-3.5 rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 flex items-start gap-2.5">
+                <Lightbulb className="w-4 h-4 text-blue-700 dark:text-blue-400 mt-0.5 shrink-0" aria-hidden="true" />
+                <ul className="text-xs text-slate-700 dark:text-slate-300 space-y-1 list-disc list-inside">
                   {insightsQuery.data.narratives.map((narration, idx) => (
                     <li key={idx} className="leading-relaxed">
                       {narration}
@@ -483,12 +483,12 @@ export const DashboardPage: React.FC = () => {
       >
         <div className="finance-panel-heading flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-indigo-600" aria-hidden="true" />
-            <h2 className="text-base font-semibold text-slate-900">
+            <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
+            <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
               Proyeksi Pengeluaran (Eksperimen Forecasting)
             </h2>
           </div>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-200">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded border bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800">
             Moving Average 3-Bulan
           </span>
         </div>
@@ -496,11 +496,11 @@ export const DashboardPage: React.FC = () => {
         {forecastQuery.isPending && validMonth ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 bg-slate-100 animate-pulse rounded-lg" />
+              <div key={i} className="h-24 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-lg" />
             ))}
           </div>
         ) : forecastQuery.isError ? (
-          <div className="py-4 text-center text-slate-600">
+          <div className="py-4 text-center text-slate-600 dark:text-slate-400">
             <p className="text-sm">Gagal memuat proyeksi pengeluaran.</p>
             <button
               type="button"
@@ -511,19 +511,19 @@ export const DashboardPage: React.FC = () => {
             </button>
           </div>
         ) : !forecastQuery.data ? (
-          <p className="text-sm text-slate-500 py-2">Data proyeksi tidak tersedia.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 py-2">Data proyeksi tidak tersedia.</p>
         ) : forecastQuery.data.status === "insufficient_data" ? (
-          <div className="p-4 rounded-xl border border-amber-200/80 bg-amber-50/50 space-y-2">
-            <div className="flex items-center gap-2 text-amber-800 font-medium text-sm">
-              <Lightbulb className="w-4 h-4 text-amber-600 shrink-0" aria-hidden="true" />
+          <div className="p-4 rounded-xl border border-amber-200/80 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/20 space-y-2">
+            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-medium text-sm">
+              <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true" />
               <span>Data Riwayat Belum Cukup untuk Proyeksi</span>
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
               {forecastQuery.data.message} Sistem tidak menghasilkan proyeksi spekulatif ketika riwayat transaksi kurang dari 3 bulan berurutan.
             </p>
             {forecastQuery.data.historical_months.length > 0 && (
-              <div className="pt-2 border-t border-amber-200/50 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                <span className="font-medium text-slate-700">Pemeriksaan 3 bulan sebelumnya:</span>
+              <div className="pt-2 border-t border-amber-200/50 dark:border-amber-900/40 flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                <span className="font-medium text-slate-700 dark:text-slate-300">Pemeriksaan 3 bulan sebelumnya:</span>
                 {forecastQuery.data.historical_months.map((h, idx) => (
                   <span key={idx} className="bg-[var(--card)] px-2 py-0.5 rounded border border-amber-300 dark:border-amber-800 text-[var(--foreground)] font-mono text-[11px]">
                     Bulan {h.month}/{h.year}: {h.transaction_count} transaksi ({formatRupiah(h.expense)})
@@ -536,49 +536,49 @@ export const DashboardPage: React.FC = () => {
           <div className="space-y-4 pt-1">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* 1. Proyeksi Moving Average */}
-              <div className="p-4 rounded-xl border border-indigo-200/80 bg-indigo-50/40 flex flex-col justify-between">
+              <div className="p-4 rounded-xl border border-indigo-200/80 dark:border-indigo-900/50 bg-indigo-50/40 dark:bg-indigo-950/30 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between text-xs font-medium text-indigo-700 mb-1">
+                  <div className="flex items-center justify-between text-xs font-medium text-indigo-700 dark:text-indigo-300 mb-1">
                     <span>Estimasi Rata-rata Bergerak</span>
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" aria-hidden="true" />
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
                   </div>
-                  <div className="text-xl font-bold text-indigo-950">
+                  <div className="text-xl font-bold text-indigo-950 dark:text-indigo-100">
                     {formatRupiah(forecastQuery.data.forecast_expense ?? "0")}
                   </div>
                 </div>
-                <p className="text-xs text-indigo-700/80 mt-2">
+                <p className="text-xs text-indigo-700/80 dark:text-indigo-300/80 mt-2">
                   Dihitung dari rata-rata pengeluaran 3 bulan representatif terakhir.
                 </p>
               </div>
 
               {/* 2. Baseline Naive */}
-              <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex flex-col justify-between">
+              <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 mb-1">
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     <span>Baseline Naive (Bulan Lalu)</span>
                     <RotateCcw className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
                   </div>
-                  <div className="text-xl font-bold text-slate-900">
+                  <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
                     {formatRupiah(forecastQuery.data.baseline_expense ?? "0")}
                   </div>
                 </div>
-                <p className="text-xs text-slate-600 mt-2">
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
                   Pengeluaran aktual pada 1 bulan sebelum periode target.
                 </p>
               </div>
 
               {/* 3. Evaluasi Temporal Backtest */}
-              <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex flex-col justify-between">
+              <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 mb-1">
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
                     <span>Akurasi Backtest Historis</span>
                     {forecastQuery.data.evaluation?.has_backtest ? (
                       <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
                         forecastQuery.data.evaluation.better_model === "ma3"
-                          ? "bg-emerald-100 text-emerald-800"
+                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
                           : forecastQuery.data.evaluation.better_model === "naive"
-                          ? "bg-amber-100 text-amber-800"
-                          : "bg-slate-200 text-slate-800"
+                          ? "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"
+                          : "bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300"
                       }`}>
                         {forecastQuery.data.evaluation.better_model === "ma3"
                           ? "MA-3 Unggul"
@@ -591,18 +591,18 @@ export const DashboardPage: React.FC = () => {
                     )}
                   </div>
                   {forecastQuery.data.evaluation?.has_backtest ? (
-                    <div className="text-xs text-slate-700 space-y-1">
+                    <div className="text-xs text-slate-700 dark:text-slate-300 space-y-1">
                       <div>MAE MA-3: <span className="font-semibold">{formatRupiah(forecastQuery.data.evaluation.ma_mae ?? "0")}</span></div>
                       <div>MAE Naive: <span className="font-semibold">{formatRupiah(forecastQuery.data.evaluation.naive_mae ?? "0")}</span></div>
                     </div>
                   ) : (
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                       {forecastQuery.data.evaluation?.explanation ?? "Data belum mencapai 4 bulan untuk split backtest."}
                     </p>
                   )}
                 </div>
                 {forecastQuery.data.evaluation?.has_backtest && (
-                  <p className="text-[11px] text-slate-500 mt-2 line-clamp-2">
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-2 line-clamp-2">
                     {forecastQuery.data.evaluation.explanation}
                   </p>
                 )}
@@ -611,8 +611,8 @@ export const DashboardPage: React.FC = () => {
 
             {/* Riwayat 3 Bulan Pengeluaran */}
             {forecastQuery.data.historical_months.length > 0 && (
-              <div className="p-3 rounded-lg bg-slate-100/60 border border-slate-200/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
-                <span className="font-medium text-slate-700">Data Historis Pembentuk:</span>
+              <div className="p-3 rounded-lg bg-slate-100/60 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-slate-400">
+                <span className="font-medium text-slate-700 dark:text-slate-300">Data Historis Pembentuk:</span>
                 <div className="flex flex-wrap gap-2">
                   {forecastQuery.data.historical_months.map((h, idx) => (
                     <span key={idx} className="bg-[var(--card)] px-2 py-0.5 rounded border border-[var(--border)] text-[var(--foreground)]">
@@ -636,14 +636,14 @@ export const DashboardPage: React.FC = () => {
           <div>
             <div className="finance-panel-heading flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-slate-600" aria-hidden="true" />
-                <h2 className="text-base font-semibold text-slate-900">
+                <Receipt className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
+                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
                   Aktivitas Transaksi Terbaru
                 </h2>
               </div>
               <Link
                 to="/transactions"
-                className="min-h-11 text-sm font-medium text-blue-700 hover:text-blue-800 hover:underline inline-flex items-center gap-2"
+                className="min-h-11 text-sm font-medium text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline inline-flex items-center gap-2"
               >
                 Lihat Semua
                 <ArrowRight aria-hidden="true" className="w-3.5 h-3.5" />
@@ -651,7 +651,7 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {categoriesQuery.isError && (
-              <div role="alert" className="mb-3 text-sm text-red-800">
+              <div role="alert" className="mb-3 text-sm text-rose-800 dark:text-rose-300">
                 <p>Kategori gagal dimuat. Nama kategori sementara ditampilkan sebagai ID.</p>
                 <button
                   type="button"
@@ -666,11 +666,11 @@ export const DashboardPage: React.FC = () => {
             {recentQuery.isPending && validMonth ? (
               <div className="space-y-3 py-2">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-12 bg-slate-50 animate-pulse rounded-md" />
+                  <div key={i} className="h-12 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-md" />
                 ))}
               </div>
             ) : recentQuery.isError ? (
-              <div className="py-8 text-center text-slate-600">
+              <div className="py-8 text-center text-slate-600 dark:text-slate-400">
                 <p className="text-sm">Gagal memuat transaksi terbaru.</p>
                 <button
                   type="button"
@@ -682,13 +682,13 @@ export const DashboardPage: React.FC = () => {
               </div>
             ) : !recentQuery.data || recentQuery.data.length === 0 ? (
               <div className="py-12 flex flex-col items-center justify-center text-center">
-                <div className="p-3 bg-blue-50 rounded-xl text-blue-700 mb-4">
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/60 rounded-xl text-blue-700 dark:text-blue-300 mb-4">
                   <Receipt aria-hidden="true" className="w-6 h-6" />
                 </div>
-                <h3 className="text-sm font-medium text-slate-900">
+                <h3 className="text-sm font-medium text-slate-900 dark:text-slate-100">
                   Belum ada transaksi di bulan ini
                 </h3>
-                <p className="text-sm text-slate-600 max-w-sm mt-2 mb-5">
+                <p className="text-sm text-slate-600 dark:text-slate-400 max-w-sm mt-2 mb-5">
                   Daftar transaksi harian untuk periode {periodLabel} akan muncul di sini setelah dicatat.
                 </p>
                 <Link
@@ -700,7 +700,7 @@ export const DashboardPage: React.FC = () => {
                 </Link>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {recentQuery.data.map((transaction) => {
                   const categoryName =
                     categoryMap.get(transaction.category_id) ??
@@ -710,20 +710,20 @@ export const DashboardPage: React.FC = () => {
                   return (
                     <div
                       key={transaction.id}
-                      className="py-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center hover:bg-slate-50/70 px-2 rounded-lg transition-colors"
+                      className="py-4 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center hover:bg-slate-50/70 dark:hover:bg-slate-800/40 px-2 rounded-lg transition-colors"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs text-slate-500 tabular-nums">
+                          <span className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
                             {formatDate(transaction.date)}
                           </span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium truncate max-w-36">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium truncate max-w-36">
                             {categoryName}
                           </span>
                         </div>
-                        <p className="text-sm font-medium text-slate-900 truncate mt-1">
+                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate mt-1">
                           {transaction.description || (
-                             <span className="text-slate-600 italic">Tanpa deskripsi</span>
+                             <span className="text-slate-500 dark:text-slate-400 italic">Tanpa deskripsi</span>
                           )}
                         </p>
                       </div>
@@ -731,13 +731,13 @@ export const DashboardPage: React.FC = () => {
                       <div className="text-right whitespace-nowrap">
                         <div
                           className={`text-sm font-semibold tabular-nums ${
-                            isIncome ? "text-emerald-700" : "text-rose-700"
+                            isIncome ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"
                           }`}
                         >
                           {isIncome ? "+" : "-"}
                             <Money amount={transaction.amount_rupiah} />
                         </div>
-                         <span className="text-xs text-slate-600">
+                         <span className="text-xs text-slate-500 dark:text-slate-400">
                           {isIncome ? "Pemasukan" : "Pengeluaran"}
                         </span>
                       </div>
@@ -749,10 +749,10 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           {recentQuery.data && recentQuery.data.length > 0 && (
-            <div className="pt-4 mt-2 border-t border-slate-100 text-right">
+            <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-800 text-right">
               <Link
                 to="/transactions"
-                className="min-h-11 text-sm font-medium text-slate-600 hover:text-slate-900 inline-flex items-center gap-1"
+                className="min-h-11 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100 inline-flex items-center gap-1"
               >
                 Buka halaman transaksi lengkap &rarr;
               </Link>
@@ -767,21 +767,21 @@ export const DashboardPage: React.FC = () => {
         >
           <div>
             <div className="finance-panel-heading flex items-center gap-2 min-h-11">
-              <PieChart className="w-4 h-4 text-slate-600" aria-hidden="true" />
-              <h2 className="text-base font-semibold text-slate-900">Alokasi Pengeluaran</h2>
+              <PieChart className="w-4 h-4 text-slate-600 dark:text-slate-400" aria-hidden="true" />
+              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">Alokasi Pengeluaran</h2>
             </div>
 
             {breakdownQuery.isPending && validMonth ? (
               <div className="space-y-4 py-2">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="space-y-1.5">
-                    <div className="h-4 bg-slate-50 animate-pulse rounded" />
-                    <div className="h-2 bg-slate-100 animate-pulse rounded-full" />
+                    <div className="h-4 bg-slate-100 dark:bg-slate-800 animate-pulse rounded" />
+                    <div className="h-2 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-full" />
                   </div>
                 ))}
               </div>
             ) : breakdownQuery.isError ? (
-              <div className="py-8 text-center text-slate-600">
+              <div className="py-8 text-center text-slate-600 dark:text-slate-400">
                 <p className="text-sm">Gagal memuat alokasi pengeluaran.</p>
                 <button
                   type="button"
@@ -793,7 +793,7 @@ export const DashboardPage: React.FC = () => {
               </div>
             ) : !breakdownQuery.data || breakdownQuery.data.items.length === 0 ? (
               <div className="py-12 flex flex-col items-center justify-center text-center">
-                <p className="text-sm text-slate-600 max-w-xs">
+                <p className="text-sm text-slate-600 dark:text-slate-400 max-w-xs">
                   Belum ada transaksi pengeluaran pada periode {periodLabel}.
                 </p>
               </div>
@@ -816,18 +816,18 @@ export const DashboardPage: React.FC = () => {
                   return (
                     <div key={item.category_id} className="space-y-1.5">
                       <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-                        <span className="font-medium text-slate-800 truncate max-w-40">
+                        <span className="font-medium text-slate-800 dark:text-slate-200 truncate max-w-40">
                           {item.category_name}
                         </span>
                          <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
+                          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
                             {percentageFormatted}
                           </span>
-                          <Money amount={item.expense} className="font-medium text-slate-900" />
+                          <Money amount={item.expense} className="font-medium text-slate-900 dark:text-slate-100" />
                         </div>
                       </div>
                       <div
-                        className="w-full bg-slate-100 rounded-full h-2 overflow-hidden"
+                        className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden"
                         role="progressbar"
                         aria-valuenow={percentageNumber}
                         aria-valuemin={0}
@@ -835,7 +835,7 @@ export const DashboardPage: React.FC = () => {
                         aria-label={`Alokasi untuk ${item.category_name}: ${percentageFormatted} (${formatRupiah(item.expense)})`}
                       >
                         <div
-                          className="bg-blue-600 h-2 rounded-full"
+                          className="bg-blue-600 dark:bg-blue-500 h-2 rounded-full"
                           style={{
                             width: `${Math.min(100, Math.max(2, percentageNumber))}%`,
                           }}
@@ -848,7 +848,7 @@ export const DashboardPage: React.FC = () => {
             )}
           </div>
 
-           <p className="text-xs text-slate-600 mt-6 pt-3 border-t border-slate-100 text-center">
+           <p className="text-xs text-slate-500 dark:text-slate-400 mt-6 pt-3 border-t border-slate-100 dark:border-slate-800 text-center">
             Hanya memuat kategori pengeluaran bertransaksi.
           </p>
         </section>

@@ -76,8 +76,8 @@ export function TransactionForm({ transaction, categories, categoriesReady, onCa
 
   return (
     <section aria-labelledby="transaction-form-title" className="finance-panel finance-form">
-      <h2 id="transaction-form-title" className="text-lg font-semibold text-slate-900">{transaction ? "Edit transaksi" : "Tambah transaksi"}</h2>
-      <p className="mt-1 text-sm text-slate-600">Catat rupiah utuh. Tanggal mengikuti kalender lokal, bukan waktu UTC.</p>
+      <h2 id="transaction-form-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100">{transaction ? "Edit transaksi" : "Tambah transaksi"}</h2>
+      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Catat rupiah utuh. Tanggal mengikuti kalender lokal, bukan waktu UTC.</p>
       <form ref={formRef} noValidate onSubmit={submit} className="mt-5 space-y-5">
         <fieldset disabled={mutation.isPending} className="grid gap-5 sm:grid-cols-2">
           <div className="transaction-field">
@@ -99,23 +99,23 @@ export function TransactionForm({ transaction, categories, categoriesReady, onCa
               {categories.filter((category) => category.type === draft.type).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
             </select>
             {errorText("category_id")}
-            {categoriesReady && !categories.some((category) => category.type === draft.type) && <p className="text-sm text-slate-600">Belum ada kategori untuk tipe ini. Siapkan kategori melalui API sebelum mencatat transaksi.</p>}
+            {categoriesReady && !categories.some((category) => category.type === draft.type) && <p className="text-sm text-slate-600 dark:text-slate-400">Belum ada kategori untuk tipe ini. Siapkan kategori melalui API sebelum mencatat transaksi.</p>}
           </div>
           <div className="transaction-field">
             <label htmlFor="transaction-amount_rupiah">Nominal (Rp)</label>
             <input {...attributes("amount_rupiah")} className="transaction-control tabular-nums" type="text" inputMode="numeric" required autoComplete="off" value={draft.amount_rupiah} onChange={(event) => change("amount_rupiah", event.target.value)} />
-            <p id="amount_rupiah-hint" className="text-sm text-slate-600">Contoh: 150000. Tanpa titik, koma, atau pecahan.</p>
+            <p id="amount_rupiah-hint" className="text-sm text-slate-600 dark:text-slate-400">Contoh: 150000. Tanpa titik, koma, atau pecahan.</p>
             {errorText("amount_rupiah")}
           </div>
           <div className="transaction-field sm:col-span-2">
-            <label htmlFor="transaction-description">Deskripsi <span className="font-normal text-slate-600">(opsional)</span></label>
+            <label htmlFor="transaction-description">Deskripsi <span className="font-normal text-slate-600 dark:text-slate-400">(opsional)</span></label>
             <textarea {...attributes("description")} className="transaction-control min-h-24 resize-y" rows={2} value={draft.description} onChange={(event) => change("description", event.target.value)} />
-            <p id="description-hint" className="text-sm text-slate-600">Maksimal 200 karakter.</p>
+            <p id="description-hint" className="text-sm text-slate-600 dark:text-slate-400">Maksimal 200 karakter.</p>
             {errorText("description")}
           </div>
         </fieldset>
-        {mutation.error && <p role="alert" className="text-sm text-red-700">{mutation.error.message}</p>}
-        {!categoriesReady && <p className="text-sm text-slate-600">Form dapat disimpan setelah kategori berhasil dimuat. Isian Anda tetap tersimpan di form ini.</p>}
+        {mutation.error && <p role="alert" className="text-sm text-rose-700 dark:text-rose-400">{mutation.error.message}</p>}
+        {!categoriesReady && <p className="text-sm text-slate-600 dark:text-slate-400">Form dapat disimpan setelah kategori berhasil dimuat. Isian Anda tetap tersimpan di form ini.</p>}
         <div className="flex flex-wrap gap-3">
           <button type="submit" disabled={mutation.isPending || !categoriesReady} className="transaction-button transaction-primary">{mutation.isPending ? "Menyimpan…" : transaction ? "Simpan perubahan" : "Simpan transaksi"}</button>
           <button type="button" disabled={mutation.isPending} onClick={onCancel} className="transaction-button">Batal</button>

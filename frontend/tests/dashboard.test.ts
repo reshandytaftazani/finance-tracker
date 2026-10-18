@@ -202,6 +202,23 @@ test("fetchAnalyticsInsights rejects unsafe category IDs in response", async (t)
   await assert.rejects(fetchAnalyticsInsights(10, 2026), /batas integer aman/i);
 });
 
+test("fetchAnalyticsInsights allows null category_id when has_data is false", async (t) => {
+  t.mock.method(globalThis, "fetch", async () => {
+    return Response.json({
+      month: 10,
+      year: 2026,
+      comparison: { has_baseline: false, previous_expense: null, difference: null, percentage: null, direction: "no_baseline" },
+      top_category: { has_data: false, category_id: null, category_name: null, expense: null, percentage_of_total: null },
+      cash_flow: { status: "no_activity", savings_rate_percentage: null },
+      narratives: [],
+    });
+  });
+
+  const data = await fetchAnalyticsInsights(10, 2026);
+  assert.equal(data.top_category.category_id, null);
+  assert.equal(data.top_category.has_data, false);
+});
+
 test("fetchAnalyticsForecast sends valid month/year and parses response correctly", async (t) => {
   const controller = new AbortController();
   t.mock.method(globalThis, "fetch", async (url, options) => {

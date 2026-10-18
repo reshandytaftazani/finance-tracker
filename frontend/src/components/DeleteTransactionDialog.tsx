@@ -31,10 +31,10 @@ export function DeleteTransactionDialog({ transaction, onCancel, onDeleted }: {
 
   return (
     <dialog ref={dialog} aria-labelledby="delete-title" aria-describedby="delete-description" className="transaction-dialog" onCancel={(event) => { event.preventDefault(); if (!locked.current) onCancel(); }}>
-      <h2 id="delete-title" className="text-lg font-semibold text-slate-900">Hapus transaksi?</h2>
-      <p id="delete-description" className="mt-3 text-slate-700">Transaksi {formatDate(transaction.date)} senilai <strong className="tabular-nums">{formatRupiah(transaction.amount_rupiah)}</strong> akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.</p>
-      {transaction.description && <p className="mt-2 break-words text-sm text-slate-600">{transaction.description}</p>}
-      {mutation.error && <p role="alert" className="mt-3 text-sm text-red-700">{mutation.error.message}</p>}
+      <h2 id="delete-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100">Hapus transaksi?</h2>
+      <p id="delete-description" className="mt-3 text-slate-700 dark:text-slate-300">Transaksi {formatDate(transaction.date)} senilai <strong className="tabular-nums">{formatRupiah(transaction.amount_rupiah)}</strong> akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.</p>
+      {transaction.description && <p className="mt-2 break-words text-sm text-slate-600 dark:text-slate-400">{transaction.description}</p>}
+      {mutation.error && <p role="alert" className="mt-3 text-sm text-rose-700 dark:text-rose-400">{mutation.error.message}</p>}
       <div className="mt-6 flex flex-wrap gap-3">
         <button ref={cancelButton} type="button" onClick={onCancel} disabled={mutation.isPending} className="transaction-button">Batal</button>
         <button type="button" onClick={confirm} disabled={mutation.isPending} className="transaction-button transaction-danger">{mutation.isPending ? "Menghapus…" : "Hapus transaksi"}</button>

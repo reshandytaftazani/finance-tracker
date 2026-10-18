@@ -130,7 +130,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   }
 
   return JSON.parse(await response.text(), (key, value) => {
-    if (key === "id" || key === "category_id") assertSafeIdentifier(value);
+    if ((key === "id" || key === "category_id") && value !== null && value !== undefined) {
+      assertSafeIdentifier(value);
+    }
     return value;
   });
 }

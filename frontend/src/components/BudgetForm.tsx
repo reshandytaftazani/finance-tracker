@@ -54,8 +54,8 @@ export function BudgetForm({ budget, period, categories, categoriesReady, onCanc
   const errorText = (field: keyof BudgetDraft) => <span id={`budget-${field}-error`} className="transaction-field-error">{errors[field]}</span>;
 
   return <section aria-labelledby="budget-form-title" className="finance-panel finance-form">
-    <h2 id="budget-form-title" className="text-lg font-semibold text-slate-900">{budget ? "Edit budget" : "Tambah budget"}</h2>
-    <p className="mt-1 text-sm text-slate-600">Satu batas pengeluaran per kategori dan bulan. Transaksi yang sudah dicatat tidak diubah.</p>
+    <h2 id="budget-form-title" className="text-lg font-semibold text-slate-900 dark:text-slate-100">{budget ? "Edit budget" : "Tambah budget"}</h2>
+    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">Satu batas pengeluaran per kategori dan bulan. Transaksi yang sudah dicatat tidak diubah.</p>
     <form ref={form} noValidate onSubmit={submit} className="mt-5 space-y-5">
       <fieldset disabled={mutation.isPending} className="grid gap-5 sm:grid-cols-3">
         <div className="transaction-field">
@@ -70,17 +70,17 @@ export function BudgetForm({ budget, period, categories, categoriesReady, onCanc
             {categories.filter((category) => category.type === "expense").map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
           </select>
           {errorText("category_id")}
-          {categoriesReady && !categories.some((category) => category.type === "expense") && <p className="text-sm text-slate-600">Belum ada kategori pengeluaran. Siapkan kategori melalui API sebelum membuat budget.</p>}
+          {categoriesReady && !categories.some((category) => category.type === "expense") && <p className="text-sm text-slate-600 dark:text-slate-400">Belum ada kategori pengeluaran. Siapkan kategori melalui API sebelum membuat budget.</p>}
         </div>
         <div className="transaction-field">
           <label htmlFor="budget-amount_rupiah">Nominal budget (Rp)</label>
           <input {...attributes("amount_rupiah")} type="text" inputMode="numeric" required autoComplete="off" className="transaction-control tabular-nums" value={draft.amount_rupiah} onChange={(event) => change("amount_rupiah", event.target.value)} />
-          <p id="budget-amount-hint" className="text-sm text-slate-600">Contoh: 150000. Rupiah utuh, tanpa titik atau koma.</p>
+          <p id="budget-amount-hint" className="text-sm text-slate-600 dark:text-slate-400">Contoh: 150000. Rupiah utuh, tanpa titik atau koma.</p>
           {errorText("amount_rupiah")}
         </div>
       </fieldset>
-      {mutation.error && <p role="alert" className="text-sm text-red-700">{mutation.error.message}</p>}
-      {!categoriesReady && <p className="text-sm text-slate-600">Simpan setelah kategori berhasil dimuat. Isian Anda tetap tersimpan di form ini.</p>}
+      {mutation.error && <p role="alert" className="text-sm text-rose-700 dark:text-rose-400">{mutation.error.message}</p>}
+      {!categoriesReady && <p className="text-sm text-slate-600 dark:text-slate-400">Simpan setelah kategori berhasil dimuat. Isian Anda tetap tersimpan di form ini.</p>}
       <div className="flex flex-wrap gap-3">
         <button type="submit" disabled={mutation.isPending || !categoriesReady} className="transaction-button transaction-primary">{mutation.isPending ? "Menyimpan…" : budget ? "Simpan perubahan" : "Simpan budget"}</button>
         <button type="button" disabled={mutation.isPending} onClick={onCancel} className="transaction-button">Batal</button>

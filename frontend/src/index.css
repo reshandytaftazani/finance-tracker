@@ -47,30 +47,6 @@
     color-scheme: dark;
   }
 
-  html.dark .text-slate-900,
-  html.dark .text-slate-800 {
-    color: var(--foreground);
-  }
-
-  html.dark .text-slate-700 {
-    color: #cbd5e1;
-  }
-
-  html.dark .text-slate-600,
-  html.dark .text-slate-500 {
-    color: var(--muted);
-  }
-
-  html.dark .border-slate-200,
-  html.dark .border-slate-300 {
-    border-color: var(--border);
-  }
-
-  html.dark .bg-slate-50,
-  html.dark .bg-slate-100 {
-    background-color: var(--muted-bg);
-  }
-
   * {
     border-color: var(--border);
   }
@@ -270,3 +246,62 @@
   .animate-pulse { animation: none; }
   .transition-all, .transition-colors { transition: none; }
 }
+
+/* Unlayered safety overrides for dark mode: CSS Cascade rules dictate that unlayered styles
+   take precedence over styles in any @layer (such as Tailwind v4's @layer utilities). */
+html.dark .text-slate-900,
+html.dark .text-slate-800 {
+  color: var(--foreground);
+}
+
+html.dark .text-slate-700 {
+  color: #cbd5e1;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500 {
+  color: var(--muted);
+}
+
+html.dark .border-slate-200,
+html.dark .border-slate-300 {
+  border-color: var(--border);
+}
+
+html.dark .bg-slate-50,
+html.dark .bg-slate-100 {
+  background-color: var(--muted-bg);
+}
+
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border);
+}
+
+/* Browser surface theming: selection, progress bars, dialog backdrop */
+::selection {
+  background: #bfdbfe;
+  color: #0f172a;
+}
+
+html.dark ::selection {
+  background: #1e3a8a;
+  color: #f8fafc;
+}
+
+html.dark .budget-progress {
+  color: #10b981;
+}
+
+html.dark .budget-progress-warning {
+  color: #f59e0b;
+}
+
+html.dark .budget-progress-over_budget {
+  color: #ef4444;
+}
+
+html.dark .transaction-dialog::backdrop {
+  background: rgb(0 0 0 / 75%);
+}
+

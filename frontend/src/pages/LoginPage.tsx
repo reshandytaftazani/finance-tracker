@@ -108,12 +108,12 @@ export const LoginPage: React.FC = () => {
             </button>
           </form>
 
-          <div className="mt-6 border-t border-slate-200 pt-5">
-            <div className="flex items-start gap-2 text-xs text-slate-500 leading-relaxed">
+          <div className="mt-6 border-t border-slate-200 dark:border-slate-800 pt-5">
+            <div className="flex items-start gap-2 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
               <ShieldCheck className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
               <span>
                 Kredensial disimpan secara aman (Argon2id) dan dikonfigurasi melalui CLI server:{" "}
-                <code className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[11px] text-slate-700">
+                <code className="rounded bg-slate-100 dark:bg-slate-800 px-1 py-0.5 font-mono text-[11px] text-slate-700 dark:text-slate-300">
                   python -m scripts.auth set-password
                 </code>
               </span>

@@ -193,18 +193,18 @@ export function TransactionsPage() {
         </div>
       </header>
 
-      <p role="status" className={notice ? "text-sm text-slate-700" : "sr-only"}>{notice}</p>
-      <p id="export-help" className="text-sm text-slate-600">CSV memuat semua transaksi sesuai filter aktif, bukan hanya halaman ini. CSV bukan backup database.</p>
-      {exporting && <p role="status" className="text-sm text-slate-600">Menyiapkan CSV…</p>}
-      {exportError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+      <p role="status" className={notice ? "text-sm text-slate-700 dark:text-slate-300" : "sr-only"}>{notice}</p>
+      <p id="export-help" className="text-sm text-slate-600 dark:text-slate-400">CSV memuat semua transaksi sesuai filter aktif, bukan hanya halaman ini. CSV bukan backup database.</p>
+      {exporting && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Menyiapkan CSV…</p>}
+      {exportError && <div role="alert" className="rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-4 text-sm text-rose-800 dark:text-rose-200">
         <p>Export CSV gagal. {exportError}</p>
         <button type="button" className="transaction-button mt-3" disabled={exporting || !validMonth} onClick={(event) => void downloadCSV(event.currentTarget)}>Coba lagi export</button>
       </div>}
-      {categories.isError && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+      {categories.isError && <div role="alert" className="rounded-lg border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 p-4 text-sm text-rose-800 dark:text-rose-200">
         <p>Kategori gagal dimuat. {categories.error.message}</p>
         <button type="button" className="transaction-button mt-3" onClick={() => void categories.refetch()} disabled={categories.isFetching}>{categories.isFetching ? "Memuat kategori…" : "Coba lagi kategori"}</button>
       </div>}
-      {categories.isPending && <p role="status" className="text-sm text-slate-600">Memuat kategori…</p>}
+      {categories.isPending && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Memuat kategori…</p>}
       {editor && <TransactionForm key={editor.transaction?.id ?? "new"} transaction={editor.transaction} categories={categoryItems} categoriesReady={categoriesReady} onCancel={closeEditor} onSaved={() => {
         setNotice(`Transaksi berhasil ${editor.transaction ? "diperbarui" : "ditambahkan"}. Daftar tetap mengikuti filter aktif.`);
         closeEditor();
@@ -310,32 +310,32 @@ export function TransactionsPage() {
       </section>
 
       <section aria-label="Daftar transaksi" aria-busy={list.isFetching} className="finance-panel overflow-hidden">
-        {!validMonth ? <p className="p-8 text-center text-slate-600">Pilih bulan untuk melihat transaksi.</p>
-          : list.isPending ? <p role="status" className="p-12 text-center text-slate-600">Memuat transaksi…</p>
+        {!validMonth ? <p className="p-8 text-center text-slate-600 dark:text-slate-400">Pilih bulan untuk melihat transaksi.</p>
+          : list.isPending ? <p role="status" className="p-12 text-center text-slate-600 dark:text-slate-400">Memuat transaksi…</p>
           : list.isError ? <div role="alert" className="p-8 text-center">
-            <h2 className="font-semibold text-slate-900">Transaksi gagal dimuat</h2>
-            <p className="mt-2 text-sm text-slate-600">{list.error.message}</p>
+            <h2 className="font-semibold text-slate-900 dark:text-slate-100">Transaksi gagal dimuat</h2>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{list.error.message}</p>
             <button type="button" onClick={() => void list.refetch()} disabled={list.isFetching} className="transaction-button mt-4">{list.isFetching ? "Memuat…" : "Coba lagi"}</button>
           </div> : <>
-            {list.isFetching && <p role="status" className="px-4 pt-3 text-sm text-slate-600">Memperbarui transaksi…</p>}
+            {list.isFetching && <p role="status" className="px-4 pt-3 text-sm text-slate-600 dark:text-slate-400">Memperbarui transaksi…</p>}
             <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabel transaksi, geser untuk melihat semua kolom">
               <table className="finance-table w-full min-w-[760px] border-collapse text-left text-sm">
                 <caption className="sr-only">Transaksi bulan {filters.month}, sesuai filter tipe, kategori, pencarian, dan nominal.</caption>
-                <thead><tr className="border-b border-slate-200 bg-slate-50 text-slate-600">
+                <thead><tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400">
                   <th scope="col" className="px-4 py-3 font-medium">Tanggal</th><th scope="col" className="px-4 py-3 font-medium">Kategori</th>
                   <th scope="col" className="px-4 py-3 font-medium">Deskripsi</th><th scope="col" className="px-4 py-3 font-medium">Tipe</th>
                   <th scope="col" className="px-4 py-3 text-right font-medium">Nominal</th><th scope="col" className="px-4 py-3 font-medium">Aksi</th>
                 </tr></thead>
-                <tbody className="divide-y divide-slate-100">
-                  {list.data?.items.map((transaction) => <tr key={transaction.id}>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-600">{formatDate(transaction.date)}</td>
-                    <td className="max-w-48 break-words px-4 py-3 text-slate-900">{categoryItems.find((category) => category.id === transaction.category_id)?.name ?? `Kategori #${transaction.category_id}`}</td>
-                    <td className="max-w-64 whitespace-pre-wrap break-words px-4 py-3 text-slate-700">{transaction.description || <span className="text-slate-600">Tanpa deskripsi</span>}</td>
-                    <td className={`px-4 py-3 ${transaction.type === "income" ? "text-emerald-700" : "text-red-700"}`}>{transaction.type === "income" ? "Pemasukan" : "Pengeluaran"}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-slate-900"><Money amount={transaction.amount_rupiah} /></td>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                  {list.data?.items.map((transaction) => <tr key={transaction.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(transaction.date)}</td>
+                    <td className="max-w-48 break-words px-4 py-3 text-slate-900 dark:text-slate-100">{categoryItems.find((category) => category.id === transaction.category_id)?.name ?? `Kategori #${transaction.category_id}`}</td>
+                    <td className="max-w-64 whitespace-pre-wrap break-words px-4 py-3 text-slate-700 dark:text-slate-300">{transaction.description || <span className="text-slate-500 dark:text-slate-400 italic">Tanpa deskripsi</span>}</td>
+                    <td className={`px-4 py-3 font-medium ${transaction.type === "income" ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}>{transaction.type === "income" ? "Pemasukan" : "Pengeluaran"}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-semibold tabular-nums text-slate-900 dark:text-slate-100"><Money amount={transaction.amount_rupiah} /></td>
                     <td className="px-4 py-3"><div className="flex gap-2">
                       <button type="button" className="transaction-button" aria-label={`Edit transaksi ${transaction.description || transaction.id}`} disabled={Boolean(editor)} onClick={() => openEditor(transaction)}>Edit</button>
-                      <button type="button" className="transaction-button text-red-700" aria-label={`Hapus transaksi ${transaction.description || transaction.id}`} disabled={Boolean(editor)} onClick={() => { opener.current = document.activeElement as HTMLElement; setDeleting(transaction); }}>Hapus</button>
+                      <button type="button" className="transaction-button text-rose-700 dark:text-rose-400" aria-label={`Hapus transaksi ${transaction.description || transaction.id}`} disabled={Boolean(editor)} onClick={() => { opener.current = document.activeElement as HTMLElement; setDeleting(transaction); }}>Hapus</button>
                     </div></td>
                   </tr>)}
                   {list.data?.items.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center">
@@ -351,8 +351,8 @@ export function TransactionsPage() {
                 </tbody>
               </table>
             </div>
-            <nav aria-label="Halaman transaksi" className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-4 py-4 text-sm">
-              <p className="text-slate-600">{list.data?.total ?? 0} transaksi · Halaman {filters.page} dari {totalPages}</p>
+            <nav aria-label="Halaman transaksi" className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 dark:border-slate-800 px-4 py-4 text-sm">
+              <p className="text-slate-600 dark:text-slate-400">{list.data?.total ?? 0} transaksi · Halaman {filters.page} dari {totalPages}</p>
               <div className="flex gap-2">
                 <button type="button" className="transaction-button" disabled={filters.page <= 1 || list.isFetching} onClick={() => setFilters((previous) => ({ ...previous, page: previous.page - 1 }))}>Sebelumnya</button>
                 <button type="button" className="transaction-button" disabled={filters.page >= totalPages || list.isFetching} onClick={() => setFilters((previous) => ({ ...previous, page: previous.page + 1 }))}>Berikutnya</button>
