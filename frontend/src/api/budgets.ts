@@ -21,7 +21,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}/api/v1/budgets${path}`, {
-      ...options, headers: { Accept: "application/json", ...(options.method ? { "Content-Type": "application/json" } : {}) },
+      ...options,
+      credentials: "include",
+      headers: { Accept: "application/json", ...(options.method ? { "Content-Type": "application/json" } : {}) },
     });
   } catch (error) {
     if (options.signal?.aborted) throw error;

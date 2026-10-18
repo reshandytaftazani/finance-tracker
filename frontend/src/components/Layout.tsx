@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, ArrowLeftRight, LayoutDashboard, ShieldCheck, Wallet } from "lucide-react";
+import { Activity, ArrowLeftRight, LayoutDashboard, LogOut, ShieldCheck, Wallet } from "lucide-react";
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchHealth } from "../api/client";
+import { useAuth } from "../lib/authContext";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,8 @@ interface LayoutProps {
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
+  const { auth, logout } = useAuth();
+  const isLoginPage = location.pathname === "/login";
 
   const { data: health, isSuccess, isError } = useQuery({
     queryKey: ["health"],
@@ -18,11 +21,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     retry: 1,
   });
 
-  const navItems = [
-    { label: "Dashboard", path: "/", icon: LayoutDashboard },
-    { label: "Transaksi", path: "/transactions", icon: ArrowLeftRight },
-    { label: "Budget", path: "/budgets", icon: Wallet },
-  ];
+  const navItems = isLoginPage
+    ? []
+    : [
+        { label: "Dashboard", path: "/", icon: LayoutDashboard },
+        { label: "Transaksi", path: "/transactions", icon: ArrowLeftRight },
+        { label: "Budget", path: "/budgets", icon: Wallet },
+      ];
 
   return (
     <div className="finance-app min-h-screen flex flex-col text-slate-900">
@@ -82,28 +87,49 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     : "Memeriksa API"}
                 </span>
               </div>
+
+              {/* Logout button when authenticated */}
+              {auth?.auth_enabled && auth?.authenticated && (
+                <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+                  <span className="hidden sm:inline-flex text-slate-700 font-medium text-xs">
+                    {auth.display_name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => logout()}
+                    aria-label="Keluar dari akun"
+                    title="Keluar"
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                  >
+                    <LogOut className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
+                    <span className="hidden md:inline">Keluar</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         {/* Mobile Navigation */}
-        <nav aria-label="Navigasi utama" className="finance-shell finance-mobile-nav lg:hidden grid grid-cols-3 gap-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                aria-current={isActive ? "page" : undefined}
-                className="finance-nav-link"
-              >
-                <Icon aria-hidden="true" className="w-4 h-4" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        {navItems.length > 0 && (
+          <nav aria-label="Navigasi utama" className="finance-shell finance-mobile-nav lg:hidden grid grid-cols-3 gap-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  aria-current={isActive ? "page" : undefined}
+                  className="finance-nav-link"
+                >
+                  <Icon aria-hidden="true" className="w-4 h-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
       </header>
 
       {/* Main Content */}

@@ -1,9 +1,13 @@
+import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Layout } from "./components/Layout";
-import { DashboardPage } from "./pages/DashboardPage";
-import { TransactionsPage } from "./pages/TransactionsPage";
+import { AuthProvider } from "./lib/auth";
+import { useAuth } from "./lib/authContext";
 import { BudgetPage } from "./pages/BudgetPage";
+import { DashboardPage } from "./pages/DashboardPage";
+import { LoginPage } from "./pages/LoginPage";
+import { TransactionsPage } from "./pages/TransactionsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -15,18 +19,82 @@ const queryClient = new QueryClient({
   },
 });
 
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { auth, isLoading } = useAuth();
+  const location = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-24 text-slate-500 text-sm">
+        Memeriksa sesi pengguna...
+      </div>
+    );
+  }
+
+  if (auth?.auth_enabled && !auth?.authenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+}
+
+function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
+  const { auth, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (auth?.auth_enabled === false || auth?.authenticated) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<DashboardPage />} />
-            <Route path="/transactions" element={<TransactionsPage />} />
-            <Route path="/budgets" element={<BudgetPage />} />
-          </Routes>
-        </Layout>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Layout>
+            <Routes>
+              <Route
+                path="/login"
+                element={
+                  <PublicOnlyRoute>
+                    <LoginPage />
+                  </PublicOnlyRoute>
+                }
+              />
+              <Route
+                path="/"
+                element={
+                  <AuthGuard>
+                    <DashboardPage />
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/transactions"
+                element={
+                  <AuthGuard>
+                    <TransactionsPage />
+                  </AuthGuard>
+                }
+              />
+              <Route
+                path="/budgets"
+                element={
+                  <AuthGuard>
+                    <BudgetPage />
+                  </AuthGuard>
+                }
+              />
+            </Routes>
+          </Layout>
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

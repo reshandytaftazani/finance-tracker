@@ -35,6 +35,7 @@ async function requestResponse(path: string, options: RequestInit = {}, accept =
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...options,
+      credentials: "include",
       headers: { Accept: accept, ...(options.method ? { "Content-Type": "application/json" } : {}) },
     });
   } catch (error) {
