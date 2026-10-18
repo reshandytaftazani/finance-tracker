@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import event, inspect, text
@@ -230,8 +230,8 @@ def test_utc_round_trip_timestamps_text_and_read_schema(db_engine):
         session.commit()
         session.refresh(transaction)
         assert transaction.id is not None
-        assert transaction.created_at == original.astimezone(timezone.utc)
-        assert transaction.created_at.tzinfo is timezone.utc
+        assert transaction.created_at == original.astimezone(UTC)
+        assert transaction.created_at.tzinfo is UTC
         assert transaction.updated_at == transaction.created_at
         assert transaction.description == "Lunch"
         assert transaction.notes is None
@@ -242,7 +242,7 @@ def test_utc_round_trip_timestamps_text_and_read_schema(db_engine):
         session.commit()
         session.refresh(transaction)
         assert transaction.updated_at > transaction.created_at
-        assert transaction.created_at == original.astimezone(timezone.utc)
+        assert transaction.created_at == original.astimezone(UTC)
         assert transaction.description == "Dinner"
         stored = session.exec(text("SELECT created_at FROM transactions")).one()[0]
         assert stored.startswith("2024-02-29 00:00:00")
@@ -282,7 +282,7 @@ def test_utc_round_trip_timestamps_text_and_read_schema(db_engine):
                 "category_id": 1,
                 "type": "expense",
                 "amount_rupiah": 1,
-                "date": datetime(2024, 1, 1, tzinfo=timezone.utc),
+                "date": datetime(2024, 1, 1, tzinfo=UTC),
             },
         ),
     ],
@@ -299,7 +299,7 @@ def test_orm_validation_cannot_be_bypassed_by_table_constructor(
 
 def test_naive_timestamp_rejected_by_adapter(db_engine):
     with Session(db_engine) as session:
-        naive = datetime(2024, 1, 1, tzinfo=timezone.utc).replace(tzinfo=None)
+        naive = datetime(2024, 1, 1, tzinfo=UTC).replace(tzinfo=None)
         session.add(Owner(display_name="New", created_at=naive))
         with pytest.raises(StatementError, match="timezone-aware"):
             session.commit()
@@ -383,5 +383,5 @@ def test_sqlite_postgres_ddl_portability_without_claiming_postgres_integration()
     adapter = UTCDateTime()
     jakarta = datetime(2024, 1, 1, 7, tzinfo=timezone(timedelta(hours=7)))
     assert adapter.process_bind_param(jakarta, postgresql.dialect()) == datetime(
-        2024, 1, 1, tzinfo=timezone.utc
+        2024, 1, 1, tzinfo=UTC
     )

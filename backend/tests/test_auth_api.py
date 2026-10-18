@@ -1,6 +1,6 @@
 """Integration tests for authentication API endpoints and session guard."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -129,7 +129,7 @@ def test_expired_session_returns_401(auth_api_env):
     client, engine, settings = auth_api_env
     # Manually inject an already expired session into the database
     raw_token, token_hash = generate_session_token()
-    expired_time = datetime.now(timezone.utc) - timedelta(hours=1)
+    expired_time = datetime.now(UTC) - timedelta(hours=1)
     with Session(engine) as session:
         session.add(
             UserSession(

@@ -1,6 +1,6 @@
 """Unit tests for core authentication: password hashing, token generation, and session persistence."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from sqlmodel import Session, select
 
@@ -46,7 +46,7 @@ def test_owner_password_and_user_session_persistence(tmp_path):
 
         # Create session
         _raw_token, token_hash = generate_session_token()
-        expiry = datetime.now(timezone.utc) + timedelta(days=7)
+        expiry = datetime.now(UTC) + timedelta(days=7)
         user_session = UserSession(
             token_hash=token_hash,
             owner_id=owner.id,
@@ -62,4 +62,4 @@ def test_owner_password_and_user_session_persistence(tmp_path):
         assert found is not None
         assert found.owner_id == owner.id
         assert found.token_hash == token_hash
-        assert found.expires_at > datetime.now(timezone.utc)
+        assert found.expires_at > datetime.now(UTC)

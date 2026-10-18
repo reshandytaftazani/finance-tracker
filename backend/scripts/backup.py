@@ -3,7 +3,7 @@
 import argparse
 import sqlite3
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -72,7 +72,7 @@ def create_backup(
         target_dir = Path(backup_dir).expanduser().resolve()
 
     target_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     destination = target_dir / f"{prefix}-{timestamp}-{uuid4().hex[:8]}.db"
 
     # Reserve the file; avoid any possibility of overwriting

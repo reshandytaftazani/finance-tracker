@@ -1,7 +1,7 @@
 """Apply migrations, backing up existing SQLite data before a pending upgrade."""
 
 import sqlite3
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -47,7 +47,7 @@ def backup_before_upgrade(bind: Engine, backup_dir: Path) -> Path | None:
     source = Path(database).expanduser().resolve()
     backup_dir = backup_dir.resolve()
     backup_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     destination = (
         backup_dir / f"finance-before-migration-{timestamp}-{uuid4().hex[:8]}.db"
     )

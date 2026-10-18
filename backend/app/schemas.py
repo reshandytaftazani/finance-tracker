@@ -1,7 +1,7 @@
 """Public schemas; ownership and normalized names are never client inputs."""
 
+from datetime import UTC, datetime
 from datetime import date as calendar_date
-from datetime import datetime, timezone
 from typing import Annotated, Literal
 
 from pydantic import (
@@ -57,7 +57,7 @@ CategoryID = Annotated[int, Field(strict=True, ge=1, le=2**63 - 1)]
 def normalize_utc(value: datetime) -> datetime:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ValueError("Timestamp must be timezone-aware")
-    return value.astimezone(timezone.utc)
+    return value.astimezone(UTC)
 
 
 UTCTimestamp = Annotated[datetime, AfterValidator(normalize_utc)]

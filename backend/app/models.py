@@ -1,7 +1,7 @@
 """Persistent MVP models. Tables are created by migrations, not app startup."""
 
+from datetime import UTC, datetime
 from datetime import date as calendar_date
-from datetime import datetime, timezone
 from typing import Literal
 
 from sqlalchemy import (
@@ -40,7 +40,7 @@ SQLModel.metadata.naming_convention = {
 
 
 def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class UTCDateTime(TypeDecorator):
@@ -57,15 +57,15 @@ class UTCDateTime(TypeDecorator):
             return None
         if value.tzinfo is None or value.utcoffset() is None:
             raise ValueError("Timestamp must be timezone-aware")
-        value = value.astimezone(timezone.utc)
+        value = value.astimezone(UTC)
         return value.replace(tzinfo=None) if dialect.name == "sqlite" else value
 
     def process_result_value(self, value, dialect):
         if value is None:
             return None
         if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc)
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
 
 
 class TimestampedModel(SQLModel):
