@@ -4,6 +4,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { fetchHealth } from "../api/client";
 import { useAuth } from "../lib/authContext";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -30,7 +31,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       ];
 
   return (
-    <div className="finance-app min-h-screen flex flex-col text-slate-900">
+    <div className="finance-app min-h-screen flex flex-col text-[var(--foreground)] bg-[var(--background)]">
       <a href="#main-content" className="skip-link" onClick={() => document.getElementById("main-content")?.focus()}>Lewati ke konten utama</a>
       {/* Top Navigation */}
       <header className="finance-topbar">
@@ -63,8 +64,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
             <div className="flex shrink-0 items-center gap-3 text-xs">
               {/* Local Security Badge */}
-              <div className="hidden xl:inline-flex items-center text-slate-600">
-                <ShieldCheck aria-hidden="true" className="w-3.5 h-3.5 mr-1.5 text-slate-500" />
+              <div className="hidden xl:inline-flex items-center text-slate-600 dark:text-slate-400">
+                <ShieldCheck aria-hidden="true" className="w-3.5 h-3.5 mr-1.5 text-slate-500 dark:text-slate-400" />
                 127.0.0.1
               </div>
 
@@ -72,10 +73,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <div
                 className={`finance-status border ${
                   isSuccess && health?.status === "ok"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800"
                     : isError
-                    ? "bg-rose-50 text-rose-700 border-rose-200"
-                    : "bg-slate-100 text-slate-600 border-slate-200"
+                    ? "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800"
+                    : "bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700"
                 }`}
               >
                 <Activity aria-hidden="true" className="w-3.5 h-3.5 shrink-0 mr-1.5" />
@@ -88,10 +89,13 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 </span>
               </div>
 
+              {/* Theme Toggle */}
+              <ThemeToggle />
+
               {/* Logout button when authenticated */}
               {auth?.auth_enabled && auth?.authenticated && (
-                <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
-                  <span className="hidden sm:inline-flex text-slate-700 font-medium text-xs">
+                <div className="flex items-center gap-2 border-l border-slate-200 dark:border-slate-800 pl-3">
+                  <span className="hidden sm:inline-flex text-slate-700 dark:text-slate-300 font-medium text-xs">
                     {auth.display_name}
                   </span>
                   <button
@@ -99,9 +103,9 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     onClick={() => logout()}
                     aria-label="Keluar dari akun"
                     title="Keluar"
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   >
-                    <LogOut className="w-3.5 h-3.5 text-slate-500" aria-hidden="true" />
+                    <LogOut className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" aria-hidden="true" />
                     <span className="hidden md:inline">Keluar</span>
                   </button>
                 </div>

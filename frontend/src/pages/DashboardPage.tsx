@@ -140,9 +140,9 @@ export const DashboardPage: React.FC = () => {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {/* Period Selector */}
-          <div className="flex items-center gap-2 bg-white px-3 rounded-xl border border-slate-200">
-            <Calendar className="w-4 h-4 text-slate-500" aria-hidden="true" />
-            <label htmlFor="dashboard-period" className="text-xs font-medium text-slate-700">
+          <div className="flex items-center gap-2 bg-[var(--card)] px-3 rounded-xl border border-[var(--border)]">
+            <Calendar className="w-4 h-4 text-[var(--muted)]" aria-hidden="true" />
+            <label htmlFor="dashboard-period" className="text-xs font-medium text-[var(--muted)]">
               Periode:
             </label>
             <input
@@ -152,7 +152,7 @@ export const DashboardPage: React.FC = () => {
               max="9999-12"
               value={month}
               onChange={(e) => setMonth(e.target.value)}
-              className="min-h-11 text-sm font-medium bg-transparent border-none text-slate-900 cursor-pointer"
+              className="min-h-11 text-sm font-medium bg-transparent border-none text-[var(--foreground)] cursor-pointer"
               aria-label="Pilih bulan dan tahun periode dashboard"
               aria-invalid={!validMonth}
               aria-describedby={!validMonth ? "dashboard-period-error" : undefined}
@@ -525,7 +525,7 @@ export const DashboardPage: React.FC = () => {
               <div className="pt-2 border-t border-amber-200/50 flex flex-wrap items-center gap-2 text-xs text-slate-600">
                 <span className="font-medium text-slate-700">Pemeriksaan 3 bulan sebelumnya:</span>
                 {forecastQuery.data.historical_months.map((h, idx) => (
-                  <span key={idx} className="bg-white/80 px-2 py-0.5 rounded border border-amber-200 text-slate-700 font-mono text-[11px]">
+                  <span key={idx} className="bg-[var(--card)] px-2 py-0.5 rounded border border-amber-300 dark:border-amber-800 text-[var(--foreground)] font-mono text-[11px]">
                     Bulan {h.month}/{h.year}: {h.transaction_count} transaksi ({formatRupiah(h.expense)})
                   </span>
                 ))}
@@ -615,8 +615,8 @@ export const DashboardPage: React.FC = () => {
                 <span className="font-medium text-slate-700">Data Historis Pembentuk:</span>
                 <div className="flex flex-wrap gap-2">
                   {forecastQuery.data.historical_months.map((h, idx) => (
-                    <span key={idx} className="bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700">
-                      Bulan {h.month}/{h.year}: <strong className="font-semibold text-slate-900">{formatRupiah(h.expense)}</strong> ({h.transaction_count} tx)
+                    <span key={idx} className="bg-[var(--card)] px-2 py-0.5 rounded border border-[var(--border)] text-[var(--foreground)]">
+                      Bulan {h.month}/{h.year}: <strong className="font-semibold text-[var(--foreground)]">{formatRupiah(h.expense)}</strong> ({h.transaction_count} tx)
                     </span>
                   ))}
                 </div>

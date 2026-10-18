@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { Layout } from "./components/Layout";
 import { AuthProvider } from "./lib/auth";
 import { useAuth } from "./lib/authContext";
+import { ThemeProvider } from "./lib/themeProvider";
 import { BudgetPage } from "./pages/BudgetPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -55,46 +56,48 @@ function PublicOnlyRoute({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <BrowserRouter>
-          <Layout>
-            <Routes>
-              <Route
-                path="/login"
-                element={
-                  <PublicOnlyRoute>
-                    <LoginPage />
-                  </PublicOnlyRoute>
-                }
-              />
-              <Route
-                path="/"
-                element={
-                  <AuthGuard>
-                    <DashboardPage />
-                  </AuthGuard>
-                }
-              />
-              <Route
-                path="/transactions"
-                element={
-                  <AuthGuard>
-                    <TransactionsPage />
-                  </AuthGuard>
-                }
-              />
-              <Route
-                path="/budgets"
-                element={
-                  <AuthGuard>
-                    <BudgetPage />
-                  </AuthGuard>
-                }
-              />
-            </Routes>
-          </Layout>
-        </BrowserRouter>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Layout>
+              <Routes>
+                <Route
+                  path="/login"
+                  element={
+                    <PublicOnlyRoute>
+                      <LoginPage />
+                    </PublicOnlyRoute>
+                  }
+                />
+                <Route
+                  path="/"
+                  element={
+                    <AuthGuard>
+                      <DashboardPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/transactions"
+                  element={
+                    <AuthGuard>
+                      <TransactionsPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/budgets"
+                  element={
+                    <AuthGuard>
+                      <BudgetPage />
+                    </AuthGuard>
+                  }
+                />
+              </Routes>
+            </Layout>
+          </BrowserRouter>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

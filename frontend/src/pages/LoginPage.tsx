@@ -40,23 +40,23 @@ export const LoginPage: React.FC = () => {
     <div className="min-h-[75vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 shadow-xs">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900 shadow-xs">
             <Lock className="h-7 w-7" aria-hidden="true" />
           </div>
-          <h1 className="mt-5 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="mt-5 text-2xl font-bold tracking-tight text-[var(--foreground)] sm:text-3xl">
             Masuk ke Personal Finance
           </h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-sm text-[var(--muted)]">
             Aplikasi keuangan pribadi untuk pemilik tunggal (single-owner).
           </p>
         </div>
 
-        <div className="finance-panel p-6 sm:p-8 shadow-xs border border-slate-200">
+        <div className="finance-panel p-6 sm:p-8 shadow-xs border border-[var(--border)]">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div
                 role="alert"
-                className="rounded-lg bg-rose-50 border border-rose-200 p-4 text-sm text-rose-700 flex items-start gap-2.5"
+                className="rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900 p-4 text-sm text-rose-700 dark:text-rose-400 flex items-start gap-2.5"
               >
                 <span className="font-semibold shrink-0">Kesalahan:</span>
                 <span>{error}</span>
@@ -66,7 +66,7 @@ export const LoginPage: React.FC = () => {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-semibold text-slate-800"
+                className="block text-sm font-semibold text-[var(--foreground)]"
               >
                 Password Pemilik
               </label>
@@ -80,7 +80,7 @@ export const LoginPage: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan password Anda"
-                  className="block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-slate-900 placeholder-slate-400 focus:border-blue-600 focus:outline-hidden focus:ring-1 focus:ring-blue-600 sm:text-sm pr-11"
+                  className="block w-full rounded-lg border border-[var(--border)] bg-[var(--card)] px-3.5 py-2.5 text-[var(--foreground)] placeholder-slate-400 focus:border-blue-600 focus:outline-hidden focus:ring-1 focus:ring-blue-600 sm:text-sm pr-11"
                   disabled={isSubmitting}
                 />
                 <button
