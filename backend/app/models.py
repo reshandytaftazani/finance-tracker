@@ -90,6 +90,27 @@ class Owner(TimestampedModel, table=True):
 
     id: int | None = Field(default=None, sa_column=Column(INT64, primary_key=True))
     display_name: str = Field(sa_column=Column(Text, nullable=False))
+    password_hash: str | None = Field(
+        default=None, sa_column=Column(Text, nullable=True)
+    )
+
+
+class UserSession(TimestampedModel, table=True):
+    __tablename__ = "user_sessions"
+    __table_args__ = (
+        Index("ix_user_sessions_owner_id", "owner_id"),
+        Index("ix_user_sessions_expires_at", "expires_at"),
+        ForeignKeyConstraint(
+            ["owner_id"],
+            ["owners.id"],
+            name="fk_user_sessions_owner",
+            ondelete="CASCADE",
+        ),
+    )
+
+    token_hash: str = Field(sa_column=Column(Text, primary_key=True))
+    owner_id: int = Field(sa_column=Column(INT64, nullable=False))
+    expires_at: datetime = Field(sa_type=UTCDateTime, nullable=False)
 
 
 class Category(TimestampedModel, table=True):
