@@ -19,6 +19,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchAnalyticsByCategory,
+  fetchAnalyticsForecast,
   fetchAnalyticsInsights,
   fetchAnalyticsSummary,
   fetchRecentTransactions,
@@ -69,6 +70,12 @@ export const DashboardPage: React.FC = () => {
     enabled: validMonth,
   });
 
+  const forecastQuery = useQuery({
+    queryKey: ["analytics", "forecast", { month: parsedMonth, year: parsedYear }],
+    queryFn: ({ signal }) => fetchAnalyticsForecast(parsedMonth, parsedYear, signal),
+    enabled: validMonth,
+  });
+
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
     queryFn: ({ signal }) => fetchCategories(signal),
@@ -82,13 +89,15 @@ export const DashboardPage: React.FC = () => {
     summaryQuery.isError ||
     breakdownQuery.isError ||
     recentQuery.isError ||
-    insightsQuery.isError;
+    insightsQuery.isError ||
+    forecastQuery.isError;
   const isAnyLoading =
     validMonth &&
     (summaryQuery.isPending ||
       breakdownQuery.isPending ||
       recentQuery.isPending ||
-      insightsQuery.isPending);
+      insightsQuery.isPending ||
+      forecastQuery.isPending);
 
   // Net Cash Flow indicator calculation
   let netCashFlowBigInt = 0n;
@@ -195,6 +204,8 @@ export const DashboardPage: React.FC = () => {
               {summaryQuery.error?.message ||
                 breakdownQuery.error?.message ||
                 recentQuery.error?.message ||
+                insightsQuery.error?.message ||
+                forecastQuery.error?.message ||
                 "Terjadi kesalahan saat mengambil data dari backend."}
             </p>
           </div>
@@ -205,6 +216,8 @@ export const DashboardPage: React.FC = () => {
               void summaryQuery.refetch();
               void breakdownQuery.refetch();
               void recentQuery.refetch();
+              void insightsQuery.refetch();
+              void forecastQuery.refetch();
             }}
           >
             Coba lagi
@@ -457,6 +470,156 @@ export const DashboardPage: React.FC = () => {
                     </li>
                   ))}
                 </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* Eksperimen Forecasting Section */}
+      <section
+        aria-label="Proyeksi Pengeluaran"
+        className="finance-panel p-5 sm:p-6"
+      >
+        <div className="finance-panel-heading flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-indigo-600" aria-hidden="true" />
+            <h2 className="text-base font-semibold text-slate-900">
+              Proyeksi Pengeluaran (Eksperimen Forecasting)
+            </h2>
+          </div>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded border bg-indigo-50 text-indigo-700 border-indigo-200">
+            Moving Average 3-Bulan
+          </span>
+        </div>
+
+        {forecastQuery.isPending && validMonth ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-24 bg-slate-100 animate-pulse rounded-lg" />
+            ))}
+          </div>
+        ) : forecastQuery.isError ? (
+          <div className="py-4 text-center text-slate-600">
+            <p className="text-sm">Gagal memuat proyeksi pengeluaran.</p>
+            <button
+              type="button"
+              className="transaction-button mt-2 text-xs py-1 px-3"
+              onClick={() => void forecastQuery.refetch()}
+            >
+              Coba lagi
+            </button>
+          </div>
+        ) : !forecastQuery.data ? (
+          <p className="text-sm text-slate-500 py-2">Data proyeksi tidak tersedia.</p>
+        ) : forecastQuery.data.status === "insufficient_data" ? (
+          <div className="p-4 rounded-xl border border-amber-200/80 bg-amber-50/50 space-y-2">
+            <div className="flex items-center gap-2 text-amber-800 font-medium text-sm">
+              <Lightbulb className="w-4 h-4 text-amber-600 shrink-0" aria-hidden="true" />
+              <span>Data Riwayat Belum Cukup untuk Proyeksi</span>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              {forecastQuery.data.message} Sistem tidak menghasilkan proyeksi spekulatif ketika riwayat transaksi kurang dari 3 bulan berurutan.
+            </p>
+            {forecastQuery.data.historical_months.length > 0 && (
+              <div className="pt-2 border-t border-amber-200/50 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                <span className="font-medium text-slate-700">Pemeriksaan 3 bulan sebelumnya:</span>
+                {forecastQuery.data.historical_months.map((h, idx) => (
+                  <span key={idx} className="bg-white/80 px-2 py-0.5 rounded border border-amber-200 text-slate-700 font-mono text-[11px]">
+                    Bulan {h.month}/{h.year}: {h.transaction_count} transaksi ({formatRupiah(h.expense)})
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4 pt-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 1. Proyeksi Moving Average */}
+              <div className="p-4 rounded-xl border border-indigo-200/80 bg-indigo-50/40 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-xs font-medium text-indigo-700 mb-1">
+                    <span>Estimasi Rata-rata Bergerak</span>
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" aria-hidden="true" />
+                  </div>
+                  <div className="text-xl font-bold text-indigo-950">
+                    {formatRupiah(forecastQuery.data.forecast_expense ?? "0")}
+                  </div>
+                </div>
+                <p className="text-xs text-indigo-700/80 mt-2">
+                  Dihitung dari rata-rata pengeluaran 3 bulan representatif terakhir.
+                </p>
+              </div>
+
+              {/* 2. Baseline Naive */}
+              <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 mb-1">
+                    <span>Baseline Naive (Bulan Lalu)</span>
+                    <RotateCcw className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+                  </div>
+                  <div className="text-xl font-bold text-slate-900">
+                    {formatRupiah(forecastQuery.data.baseline_expense ?? "0")}
+                  </div>
+                </div>
+                <p className="text-xs text-slate-600 mt-2">
+                  Pengeluaran aktual pada 1 bulan sebelum periode target.
+                </p>
+              </div>
+
+              {/* 3. Evaluasi Temporal Backtest */}
+              <div className="p-4 rounded-xl border border-slate-200/80 bg-slate-50/50 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-xs font-medium text-slate-500 mb-1">
+                    <span>Akurasi Backtest Historis</span>
+                    {forecastQuery.data.evaluation?.has_backtest ? (
+                      <span className={`text-[11px] font-bold px-1.5 py-0.5 rounded ${
+                        forecastQuery.data.evaluation.better_model === "ma3"
+                          ? "bg-emerald-100 text-emerald-800"
+                          : forecastQuery.data.evaluation.better_model === "naive"
+                          ? "bg-amber-100 text-amber-800"
+                          : "bg-slate-200 text-slate-800"
+                      }`}>
+                        {forecastQuery.data.evaluation.better_model === "ma3"
+                          ? "MA-3 Unggul"
+                          : forecastQuery.data.evaluation.better_model === "naive"
+                          ? "Naive Unggul"
+                          : "Seimbang"}
+                      </span>
+                    ) : (
+                      <Minus className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+                    )}
+                  </div>
+                  {forecastQuery.data.evaluation?.has_backtest ? (
+                    <div className="text-xs text-slate-700 space-y-1">
+                      <div>MAE MA-3: <span className="font-semibold">{formatRupiah(forecastQuery.data.evaluation.ma_mae ?? "0")}</span></div>
+                      <div>MAE Naive: <span className="font-semibold">{formatRupiah(forecastQuery.data.evaluation.naive_mae ?? "0")}</span></div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-slate-500 mt-1">
+                      {forecastQuery.data.evaluation?.explanation ?? "Data belum mencapai 4 bulan untuk split backtest."}
+                    </p>
+                  )}
+                </div>
+                {forecastQuery.data.evaluation?.has_backtest && (
+                  <p className="text-[11px] text-slate-500 mt-2 line-clamp-2">
+                    {forecastQuery.data.evaluation.explanation}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Riwayat 3 Bulan Pengeluaran */}
+            {forecastQuery.data.historical_months.length > 0 && (
+              <div className="p-3 rounded-lg bg-slate-100/60 border border-slate-200/60 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
+                <span className="font-medium text-slate-700">Data Historis Pembentuk:</span>
+                <div className="flex flex-wrap gap-2">
+                  {forecastQuery.data.historical_months.map((h, idx) => (
+                    <span key={idx} className="bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-700">
+                      Bulan {h.month}/{h.year}: <strong className="font-semibold text-slate-900">{formatRupiah(h.expense)}</strong> ({h.transaction_count} tx)
+                    </span>
+                  ))}
+                </div>
               </div>
             )}
           </div>
