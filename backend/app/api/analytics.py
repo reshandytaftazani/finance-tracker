@@ -5,9 +5,15 @@ from typing import Annotated
 from fastapi import APIRouter, Query
 
 from app.api.common import OwnerDep, SessionDep
-from app.schemas import AnalyticsByCategory, AnalyticsInsights, AnalyticsSummary
+from app.schemas import (
+    AnalyticsByCategory,
+    AnalyticsForecast,
+    AnalyticsInsights,
+    AnalyticsSummary,
+)
 from app.services.analytics import (
     monthly_category_expenses,
+    monthly_forecast,
     monthly_insights,
     monthly_summary,
 )
@@ -30,3 +36,9 @@ def by_category(session: SessionDep, owner: OwnerDep, month: Month, year: Year):
 @router.get("/insights", response_model=AnalyticsInsights)
 def insights(session: SessionDep, owner: OwnerDep, month: Month, year: Year):
     return monthly_insights(session, owner.id, month, year)
+
+
+@router.get("/forecast", response_model=AnalyticsForecast)
+def forecast(session: SessionDep, owner: OwnerDep, month: Month, year: Year):
+    return monthly_forecast(session, owner.id, month, year)
+

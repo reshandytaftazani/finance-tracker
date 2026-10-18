@@ -422,3 +422,35 @@ def test_insights_endpoint_year_rollover(analytics_api):
     assert comp["difference"] == "200000"
     assert comp["percentage"] == "20.00"
     assert comp["direction"] == "up"
+
+
+def test_forecast_endpoint_insufficient_data(analytics_api):
+    client, _ = analytics_api
+    data = get(client, "forecast", {"month": 10, "year": 2026})
+    assert data["status"] == "insufficient_data"
+    assert data["has_sufficient_data"] is False
+    assert data["forecast_expense"] is None
+    assert data["baseline_expense"] is None
+    assert len(data["historical_months"]) == 3
+
+
+def test_forecast_endpoint_sufficient_data(analytics_api):
+    client, _ = analytics_api
+    add(client, amount="3000000", when="2026-07-15", category=1, kind="expense")
+    add(client, amount="4000000", when="2026-08-15", category=1, kind="expense")
+    add(client, amount="5000000", when="2026-09-15", category=1, kind="expense")
+
+    data = get(client, "forecast", {"month": 10, "year": 2026})
+    assert data["status"] == "sufficient_data"
+    assert data["has_sufficient_data"] is True
+    assert data["forecast_expense"] == "4000000"
+    assert data["baseline_expense"] == "5000000"
+    assert [h["month"] for h in data["historical_months"]] == [7, 8, 9]
+
+
+def test_forecast_endpoint_isolated_from_foreign_owner(analytics_api):
+    client, _ = analytics_api
+    data = get(client, "forecast", {"month": 10, "year": 2026})
+    assert data["status"] == "insufficient_data"
+    assert data["has_sufficient_data"] is False
+
