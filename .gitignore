@@ -36,6 +36,6 @@ backend/exports/
 # Rencana pengembangan pribadi; hanya disimpan lokal.
 /PLANNING.local.md
 
-# Local product/design brief files.
+# Local product brief and Impeccable workspace.
 /PRODUCT.md
-/.impeccable/design.json
+/.impeccable/
