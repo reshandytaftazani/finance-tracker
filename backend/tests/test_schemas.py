@@ -18,6 +18,7 @@ from app.validation import MAX_AMOUNT_RUPIAH, normalize_category_name
 
 def transaction_data(**changes):
     return {
+        "wallet_id": 1,
         "category_id": 1,
         "type": "expense",
         "amount_rupiah": "150000",
@@ -183,7 +184,14 @@ def test_patch_distinguishes_omitted_fields_and_null_notes():
         (CategoryUpdate, "type"),
         *[
             (TransactionUpdate, field)
-            for field in ["category_id", "type", "amount_rupiah", "date", "description"]
+            for field in [
+                "wallet_id",
+                "category_id",
+                "type",
+                "amount_rupiah",
+                "date",
+                "description",
+            ]
         ],
     ],
 )

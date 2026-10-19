@@ -8,7 +8,7 @@ from sqlalchemy.schema import CreateIndex, CreateTable
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.db import enable_sqlite_foreign_keys
-from app.models import Category, Owner, Transaction, UTCDateTime
+from app.models import Category, Owner, Transaction, UTCDateTime, Wallet
 from app.schemas import CategoryRead, TransactionRead
 from app.validation import MAX_AMOUNT_RUPIAH
 from scripts.migrate import upgrade_database
@@ -30,6 +30,13 @@ def db_engine(tmp_path, request):
         session.commit()
         session.add_all(
             [
+                Wallet(id=1, owner_id=1, name="Dompet 1", initial_balance_rupiah=0),
+                Wallet(id=2, owner_id=2, name="Dompet 2", initial_balance_rupiah=0),
+            ]
+        )
+        session.commit()
+        session.add_all(
+            [
                 Category(id=1, owner_id=1, name="Makanan", type="expense"),
                 Category(id=2, owner_id=1, name="Gaji", type="income"),
                 Category(id=3, owner_id=2, name="Makanan", type="expense"),
@@ -44,6 +51,7 @@ def insert_transaction(connection, **changes):
     values = {
         "owner_id": 1,
         "category_id": 1,
+        "wallet_id": 1,
         "type": "expense",
         "amount_rupiah": 150000,
         "date": "2024-02-29",
@@ -88,6 +96,9 @@ def test_sqlite_check_validates_stored_integer_not_input_type(db_engine, value):
         {"category_id": None},
         {"category_id": 2},
         {"category_id": 3},
+        {"wallet_id": 999},
+        {"wallet_id": None},
+        {"wallet_id": 2},
         {"owner_id": 2},
         {"type": "transfer"},
         {"description": "a" * 201},
@@ -111,6 +122,8 @@ def test_db_foreign_keys_required_fields_and_text_checks(db_engine, changes):
         "UPDATE categories SET type='income' WHERE id=1",
         "DELETE FROM owners WHERE id=1",
         "UPDATE owners SET id=9 WHERE id=1",
+        "DELETE FROM wallets WHERE id=1",
+        "UPDATE wallets SET owner_id=2 WHERE id=1",
     ],
 )
 def test_restrict_referenced_category_and_owner(db_engine, statement):
@@ -218,6 +231,7 @@ def test_utc_round_trip_timestamps_text_and_read_schema(db_engine):
         transaction = Transaction(
             owner_id=1,
             category_id=1,
+            wallet_id=1,
             type="expense",
             amount_rupiah=MAX_AMOUNT_RUPIAH,
             date=date(2024, 2, 29),
@@ -259,6 +273,7 @@ def test_utc_round_trip_timestamps_text_and_read_schema(db_engine):
             {
                 "owner_id": 1,
                 "category_id": 1,
+                "wallet_id": 1,
                 "type": "expense",
                 "amount_rupiah": 1,
                 "date": date(2024, 1, 1),
@@ -270,6 +285,7 @@ def test_utc_round_trip_timestamps_text_and_read_schema(db_engine):
             {
                 "owner_id": 1,
                 "category_id": 1,
+                "wallet_id": 1,
                 "type": "expense",
                 "amount_rupiah": 1.0,
                 "date": date(2024, 1, 1),
@@ -280,6 +296,7 @@ def test_utc_round_trip_timestamps_text_and_read_schema(db_engine):
             {
                 "owner_id": 1,
                 "category_id": 1,
+                "wallet_id": 1,
                 "type": "expense",
                 "amount_rupiah": 1,
                 "date": datetime(2024, 1, 1, tzinfo=UTC),
@@ -336,7 +353,7 @@ def test_foreign_keys_enabled_on_every_new_connection(db_engine):
 
 def test_schema_names_composite_foreign_keys_and_indexes(db_engine):
     inspector = inspect(db_engine)
-    for name in ["owners", "categories", "transactions"]:
+    for name in ["owners", "categories", "transactions", "wallets", "transfers"]:
         assert inspector.get_pk_constraint(name)["name"] == f"pk_{name}"
         assert all(
             check["name"].startswith(f"ck_{name}_")
@@ -353,9 +370,18 @@ def test_schema_names_composite_foreign_keys_and_indexes(db_engine):
         "id",
         "type",
     ]
+    assert foreign_keys["fk_transactions_wallet"]["constrained_columns"] == [
+        "owner_id",
+        "wallet_id",
+    ]
+    assert foreign_keys["fk_transactions_wallet"]["referred_columns"] == [
+        "owner_id",
+        "id",
+    ]
     assert {index["name"] for index in inspector.get_indexes("transactions")} == {
         "ix_transactions_owner_date_id",
         "ix_transactions_owner_category_date_id",
+        "ix_transactions_owner_wallet_date_id",
     }
     assert Category.__table__.c.owner_id.default is None
     assert Category.__table__.c.owner_id.server_default is None

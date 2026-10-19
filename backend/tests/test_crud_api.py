@@ -16,7 +16,7 @@ from app.config import Settings, get_settings
 from app.db import create_db_engine, get_session
 from app.dependencies import get_current_owner_id
 from app.main import app
-from app.models import Category, Owner, Transaction
+from app.models import Category, Owner, Transaction, Wallet
 from scripts.migrate import upgrade_database
 
 
@@ -31,6 +31,20 @@ def api(tmp_path):
         session.commit()
         session.add_all(
             [
+                Wallet(
+                    id=1,
+                    owner_id=1,
+                    name="Dompet Utama",
+                    type="bank",
+                    initial_balance_rupiah=0,
+                ),
+                Wallet(
+                    id=2,
+                    owner_id=2,
+                    name="Dompet Utama",
+                    type="bank",
+                    initial_balance_rupiah=0,
+                ),
                 Category(id=1, owner_id=1, name="Makanan", type="expense"),
                 Category(id=2, owner_id=1, name="Gaji", type="income"),
                 Category(id=3, owner_id=2, name="Rahasia", type="expense"),
@@ -41,6 +55,7 @@ def api(tmp_path):
             Transaction(
                 id=100,
                 owner_id=2,
+                wallet_id=2,
                 category_id=3,
                 type="expense",
                 amount_rupiah=999,
@@ -66,6 +81,7 @@ def api(tmp_path):
 
 def payload(**changes):
     return {
+        "wallet_id": 1,
         "category_id": 1,
         "type": "expense",
         "amount_rupiah": "150000",
@@ -467,7 +483,7 @@ def test_owner_is_never_accepted_from_request_and_second_owner_isolated(api):
         client.patch("/api/v1/transactions/100", json={"category_id": 1}).status_code
         == 404
     )
-    own_created = create_transaction(client, category_id=3)
+    own_created = create_transaction(client, wallet_id=2, category_id=3)
     assert client.get(f"/api/v1/transactions/{own_created['id']}").status_code == 200
 
 
@@ -557,6 +573,7 @@ def test_defaults_and_empty_notes_are_serialized_without_data_loss(api):
     response = client.post(
         "/api/v1/transactions",
         json={
+            "wallet_id": 1,
             "category_id": 1,
             "type": "expense",
             "amount_rupiah": "0001",

@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 
 from app.db import get_session
 from app.dependencies import get_current_owner
-from app.models import Category, Owner, Wallet
+from app.models import Category, Owner, Transfer, Wallet
 
 SessionDep = Annotated[Session, Depends(get_session)]
 OwnerDep = Annotated[Owner, Depends(get_current_owner)]
@@ -37,6 +37,17 @@ def find_wallet(session: Session, owner_id: int, wallet_id: int) -> Wallet:
     if wallet is None:
         raise HTTPException(status_code=404, detail="Wallet not found")
     return wallet
+
+
+def find_transfer(session: Session, owner_id: int, transfer_id: int) -> Transfer:
+    transfer = session.exec(
+        select(Transfer).where(
+            Transfer.owner_id == owner_id, Transfer.id == transfer_id
+        )
+    ).first()
+    if transfer is None:
+        raise HTTPException(status_code=404, detail="Transfer not found")
+    return transfer
 
 
 def commit_or_conflict(session: Session) -> None:

@@ -104,6 +104,7 @@ class CategoryUpdate(InputSchema):
 
 
 class TransactionCreate(InputSchema):
+    wallet_id: WalletID
     category_id: CategoryID
     type: TransactionType
     amount_rupiah: AmountInput
@@ -113,6 +114,7 @@ class TransactionCreate(InputSchema):
 
 
 class TransactionUpdate(InputSchema):
+    wallet_id: WalletID | None = None
     category_id: CategoryID | None = None
     type: TransactionType | None = None
     amount_rupiah: AmountInput | None = None
@@ -121,7 +123,13 @@ class TransactionUpdate(InputSchema):
     notes: Notes = None
 
     @field_validator(
-        "category_id", "type", "amount_rupiah", "date", "description", mode="before"
+        "wallet_id",
+        "category_id",
+        "type",
+        "amount_rupiah",
+        "date",
+        "description",
+        mode="before",
     )
     @classmethod
     def reject_null(cls, value):
@@ -148,6 +156,7 @@ class CategoryRead(ReadSchema):
 
 
 class TransactionRead(ReadSchema):
+    wallet_id: int
     category_id: int
     type: TransactionType
     amount_rupiah: AmountRead
@@ -165,6 +174,38 @@ class CategoryPage(BaseModel):
 
 class TransactionPage(BaseModel):
     items: list[TransactionRead]
+    total: int
+    page: int
+    page_size: int
+
+
+class TransferCreate(InputSchema):
+    from_wallet_id: WalletID
+    to_wallet_id: WalletID
+    amount_rupiah: AmountInput
+    date: LocalDateInput
+    description: Description = ""
+    notes: Notes = None
+
+    @field_validator("to_wallet_id")
+    @classmethod
+    def reject_self_transfer(cls, to_wallet_id, info):
+        if "from_wallet_id" in info.data and to_wallet_id == info.data["from_wallet_id"]:
+            raise ValueError("Source and destination wallets must be different")
+        return to_wallet_id
+
+
+class TransferRead(ReadSchema):
+    from_wallet_id: int
+    to_wallet_id: int
+    amount_rupiah: AmountRead
+    date: calendar_date
+    description: str
+    notes: str | None
+
+
+class TransferPage(BaseModel):
+    items: list[TransferRead]
     total: int
     page: int
     page_size: int

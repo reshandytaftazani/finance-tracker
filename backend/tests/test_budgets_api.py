@@ -289,20 +289,14 @@ def test_upgrade_from_populated_initial_revision_preserves_rows_and_backups(tmp_
                 "INSERT INTO owners (id, display_name, created_at, updated_at) "
                 "VALUES (1, 'Lokal', '2026-01-01 00:00:00', '2026-01-01 00:00:00')"
             )
-        with Session(engine) as session:
-            session.add(Category(id=2**40, owner_id=1, name="Makanan", type="expense"))
-            session.commit()
-            session.add(
-                Transaction(
-                    id=2**41,
-                    owner_id=1,
-                    category_id=2**40,
-                    type="expense",
-                    amount_rupiah=9999999999999,
-                    date=date(2024, 2, 29),
-                )
+            connection.exec_driver_sql(
+                f"INSERT INTO categories (id, owner_id, name, normalized_name, type, created_at, updated_at) "
+                f"VALUES ({2**40}, 1, 'Makanan', 'makanan', 'expense', '2026-01-01 00:00:00', '2026-01-01 00:00:00')"
             )
-            session.commit()
+            connection.exec_driver_sql(
+                f"INSERT INTO transactions (id, owner_id, category_id, type, amount_rupiah, date, description, created_at, updated_at) "
+                f"VALUES ({2**41}, 1, {2**40}, 'expense', 9999999999999, '2024-02-29', '', '2026-01-01 00:00:00', '2026-01-01 00:00:00')"
+            )
         with engine.connect() as connection:
             before = {
                 t: connection.exec_driver_sql(f"SELECT * FROM {t} ORDER BY id").all()
@@ -318,6 +312,8 @@ def test_upgrade_from_populated_initial_revision_preserves_rows_and_backups(tmp_
                 "SELECT id, amount_rupiah FROM transactions"
             ).fetchall() == [(2**41, 9999999999999)]
         with engine.connect() as connection:
+            cols = [col["name"] for col in inspect(engine).get_columns("transactions")]
+            wallet_idx = cols.index("wallet_id")
             for table, rows in before.items():
                 current_rows = connection.exec_driver_sql(
                     f"SELECT * FROM {table} ORDER BY id"
@@ -325,6 +321,12 @@ def test_upgrade_from_populated_initial_revision_preserves_rows_and_backups(tmp_
                 if table == "owners":
                     assert [r[:-1] for r in current_rows] == rows
                     assert all(r[-1] is None for r in current_rows)
+                elif table == "transactions":
+                    filtered = [
+                        tuple(val for i, val in enumerate(r) if i != wallet_idx)
+                        for r in current_rows
+                    ]
+                    assert filtered == rows
                 else:
                     assert current_rows == rows
             assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
@@ -341,6 +343,7 @@ def test_status_tracks_transaction_mutations_and_empty_period(api):
     transaction = client.post(
         "/api/v1/transactions",
         json={
+            "wallet_id": 1,
             "category_id": 1,
             "type": "expense",
             "amount_rupiah": "80",
@@ -389,6 +392,7 @@ def test_percentage_rounding_does_not_change_exact_thresholds(
             "/api/v1/transactions",
             json={
                 "category_id": 1,
+                "wallet_id": 1,
                 "type": "expense",
                 "amount_rupiah": str(spent),
                 "date": "2026-10-01",
@@ -424,6 +428,7 @@ def test_status_calendar_extremes(api, month, year, day):
             "/api/v1/transactions",
             json={
                 "category_id": 1,
+                "wallet_id": 1,
                 "type": "expense",
                 "amount_rupiah": "80",
                 "date": day,

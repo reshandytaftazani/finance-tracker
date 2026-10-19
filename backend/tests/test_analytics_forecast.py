@@ -6,7 +6,7 @@ import pytest
 from sqlmodel import Session
 
 from app.db import create_db_engine
-from app.models import Category, Owner, Transaction
+from app.models import Category, Owner, Transaction, Wallet
 from app.services.analytics import monthly_forecast
 from scripts.migrate import upgrade_database
 
@@ -22,6 +22,8 @@ def forecast_db(tmp_path):
         ])
         session.commit()
         session.add_all([
+            Wallet(id=1, owner_id=1, name="Dompet Utama", type="bank", initial_balance_rupiah=0),
+            Wallet(id=2, owner_id=2, name="Dompet Utama", type="bank", initial_balance_rupiah=0),
             Category(id=1, owner_id=1, name="Belanja", type="expense"),
             Category(id=2, owner_id=1, name="Gaji", type="income"),
             Category(id=3, owner_id=2, name="Lain", type="expense"),
@@ -181,9 +183,9 @@ def test_forecast_owner_isolation(forecast_db):
     with Session(forecast_db) as session:
         # Owner 2 has transactions, Owner 1 has none
         session.add_all([
-            Transaction(owner_id=2, category_id=3, type="expense", amount_rupiah=3000000, date=date(2026, 2, 5)),
-            Transaction(owner_id=2, category_id=3, type="expense", amount_rupiah=3000000, date=date(2026, 3, 5)),
-            Transaction(owner_id=2, category_id=3, type="expense", amount_rupiah=3000000, date=date(2026, 4, 5)),
+            Transaction(owner_id=2, wallet_id=2, category_id=3, type="expense", amount_rupiah=3000000, date=date(2026, 2, 5)),
+            Transaction(owner_id=2, wallet_id=2, category_id=3, type="expense", amount_rupiah=3000000, date=date(2026, 3, 5)),
+            Transaction(owner_id=2, wallet_id=2, category_id=3, type="expense", amount_rupiah=3000000, date=date(2026, 4, 5)),
         ])
         session.commit()
 

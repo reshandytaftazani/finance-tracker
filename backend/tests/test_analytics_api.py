@@ -10,7 +10,7 @@ from sqlmodel import Session
 from app.db import create_db_engine, get_session
 from app.dependencies import get_current_owner_id
 from app.main import app
-from app.models import Category, Owner, Transaction
+from app.models import Category, Owner, Transaction, Wallet
 from scripts.migrate import upgrade_database
 
 PREFIX = "/api/v1/analytics"
@@ -28,6 +28,20 @@ def analytics_api(tmp_path):
         session.commit()
         session.add_all(
             [
+                Wallet(
+                    id=1,
+                    owner_id=1,
+                    name="Dompet Utama",
+                    type="bank",
+                    initial_balance_rupiah=0,
+                ),
+                Wallet(
+                    id=2,
+                    owner_id=2,
+                    name="Dompet Utama",
+                    type="bank",
+                    initial_balance_rupiah=0,
+                ),
                 Category(id=1, owner_id=1, name="Makanan", type="expense"),
                 Category(id=2, owner_id=1, name="Gaji", type="income"),
                 Category(id=3, owner_id=1, name="Transport", type="expense"),
@@ -39,6 +53,7 @@ def analytics_api(tmp_path):
         session.add(
             Transaction(
                 owner_id=2,
+                wallet_id=2,
                 category_id=4,
                 type="expense",
                 amount_rupiah=999,
@@ -62,10 +77,13 @@ def analytics_api(tmp_path):
         engine.dispose()
 
 
-def add(client, amount="100", when="2026-10-09", category=1, kind="expense"):
+def add(
+    client, amount="100", when="2026-10-09", category=1, kind="expense", wallet=1
+):
     response = client.post(
         "/api/v1/transactions",
         json={
+            "wallet_id": wallet,
             "category_id": category,
             "type": kind,
             "amount_rupiah": amount,

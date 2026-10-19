@@ -17,6 +17,7 @@ from app.api.common import (
     SessionDep,
     commit_or_conflict,
     find_category,
+    find_wallet,
 )
 from app.models import (
     MAX_AMOUNT_RUPIAH,
@@ -71,6 +72,7 @@ def transaction_predicates(
     end_date: date | None,
     category_id: int | None,
     kind: TransactionType | None,
+    wallet_id: int | None = None,
     search: str | None = None,
     min_amount: int | None = None,
     max_amount: int | None = None,
@@ -93,6 +95,9 @@ def transaction_predicates(
         predicates.append(Transaction.category_id == category_id)
     if kind is not None:
         predicates.append(Transaction.type == kind)
+    if wallet_id is not None:
+        find_wallet(session, owner_id, wallet_id)
+        predicates.append(Transaction.wallet_id == wallet_id)
     if min_amount is not None:
         predicates.append(Transaction.amount_rupiah >= min_amount)
     if max_amount is not None:
@@ -120,6 +125,7 @@ def list_transactions(
     end_date: LocalDateInput | None = None,
     category_id: Annotated[int | None, Query(ge=1, le=2**63 - 1)] = None,
     type: TransactionType | None = None,
+    wallet_id: Annotated[int | None, Query(ge=1, le=2**63 - 1)] = None,
     search: Annotated[str | None, Query(max_length=100)] = None,
     min_amount: Annotated[int | None, Query(ge=1, le=MAX_AMOUNT_RUPIAH)] = None,
     max_amount: Annotated[int | None, Query(ge=1, le=MAX_AMOUNT_RUPIAH)] = None,
@@ -133,6 +139,7 @@ def list_transactions(
         end_date,
         category_id,
         type,
+        wallet_id,
         search,
         min_amount,
         max_amount,
@@ -155,6 +162,7 @@ def create_transaction(
     payload: TransactionCreate, session: SessionDep, owner: OwnerDep
 ):
     validate_category(session, owner.id, payload.category_id, payload.type)
+    find_wallet(session, owner.id, payload.wallet_id)
     transaction = Transaction(owner_id=owner.id, **payload.model_dump())
     session.add(transaction)
     commit_or_conflict(session)
@@ -174,6 +182,7 @@ def export_transactions(
     end_date: LocalDateInput | None = None,
     category_id: Annotated[int | None, Query(ge=1, le=2**63 - 1)] = None,
     type: TransactionType | None = None,
+    wallet_id: Annotated[int | None, Query(ge=1, le=2**63 - 1)] = None,
     search: Annotated[str | None, Query(max_length=100)] = None,
     min_amount: Annotated[int | None, Query(ge=1, le=MAX_AMOUNT_RUPIAH)] = None,
     max_amount: Annotated[int | None, Query(ge=1, le=MAX_AMOUNT_RUPIAH)] = None,
@@ -186,6 +195,7 @@ def export_transactions(
         end_date,
         category_id,
         type,
+        wallet_id,
         search,
         min_amount,
         max_amount,
@@ -251,6 +261,8 @@ def update_transaction(
             changes.get("category_id", transaction.category_id),
             changes.get("type", transaction.type),
         )
+        if "wallet_id" in changes:
+            find_wallet(session, owner.id, changes["wallet_id"])
         transaction.sqlmodel_update(changes)
         transaction.updated_at = utc_now()
         session.add(transaction)

@@ -8,7 +8,7 @@ from sqlmodel import Session
 
 from app.db import create_db_engine, get_session
 from app.main import app
-from app.models import Category, Owner, Transaction
+from app.models import Category, Owner, Transaction, Wallet
 from scripts.migrate import upgrade_database
 
 
@@ -19,6 +19,7 @@ def search_api(tmp_path):
     with Session(engine) as session:
         session.add(Owner(id=1, display_name="Lokal"))
         session.commit()
+        session.add(Wallet(id=1, owner_id=1, name="Tunai", initial_balance_rupiah=0))
         session.add_all(
             [
                 Category(id=1, owner_id=1, name="Makanan", type="expense"),
@@ -32,6 +33,7 @@ def search_api(tmp_path):
                     id=1,
                     owner_id=1,
                     category_id=1,
+                    wallet_id=1,
                     type="expense",
                     amount_rupiah=25000,
                     date=date(2026, 10, 1),
@@ -42,6 +44,7 @@ def search_api(tmp_path):
                     id=2,
                     owner_id=1,
                     category_id=1,
+                    wallet_id=1,
                     type="expense",
                     amount_rupiah=150000,
                     date=date(2026, 10, 2),
@@ -52,6 +55,7 @@ def search_api(tmp_path):
                     id=3,
                     owner_id=1,
                     category_id=2,
+                    wallet_id=1,
                     type="income",
                     amount_rupiah=5000000,
                     date=date(2026, 10, 5),
@@ -62,6 +66,7 @@ def search_api(tmp_path):
                     id=4,
                     owner_id=1,
                     category_id=1,
+                    wallet_id=1,
                     type="expense",
                     amount_rupiah=50000,
                     date=date(2026, 10, 10),

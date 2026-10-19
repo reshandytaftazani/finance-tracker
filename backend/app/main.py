@@ -11,6 +11,7 @@ from app.api.budgets import router as budgets_router
 from app.api.categories import router as categories_router
 from app.api.health import router as health_router
 from app.api.transactions import router as transactions_router
+from app.api.transfers import router as transfers_router
 from app.api.wallets import router as wallets_router
 from app.config import Settings, get_settings
 from app.security import MutationProtectionMiddleware
@@ -43,6 +44,7 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(categories_router)
 app.include_router(transactions_router)
+app.include_router(transfers_router)
 app.include_router(wallets_router)
 app.include_router(analytics_router)
 app.include_router(budgets_router)
