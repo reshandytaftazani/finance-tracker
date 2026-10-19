@@ -277,7 +277,6 @@ def test_orm_budget_rejects_non_integer_values(api, field, value):
 
 
 def test_upgrade_from_populated_initial_revision_preserves_rows_and_backups(tmp_path):
-    from app.models import Category
 
     engine = create_db_engine(f"sqlite:///{(tmp_path / 'old.db').as_posix()}")
     config = alembic_config()

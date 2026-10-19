@@ -1,15 +1,16 @@
-import pytest
 from datetime import date
+
+import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.db import create_db_engine, enable_sqlite_foreign_keys
 from app.models import (
-    Owner,
     Category,
+    Owner,
     Transaction,
-    Wallet,
     Transfer,
+    Wallet,
 )
 
 

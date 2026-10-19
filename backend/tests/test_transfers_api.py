@@ -1,6 +1,5 @@
 """Integration tests for Transfers API, wallet balance impacts, and transaction wallet integration."""
 
-from datetime import date
 
 import pytest
 from fastapi.testclient import TestClient

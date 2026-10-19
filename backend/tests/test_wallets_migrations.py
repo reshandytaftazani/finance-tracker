@@ -1,11 +1,8 @@
-import pytest
-from datetime import date
 from sqlalchemy import event, inspect
-from sqlmodel import Session, create_engine
-from alembic import command
+from sqlmodel import create_engine
 
+from alembic import command
 from app.db import enable_sqlite_foreign_keys
-from app.models import Category, Owner, Transaction, Wallet, Transfer
 from scripts.migrate import alembic_config, upgrade_database
 
 

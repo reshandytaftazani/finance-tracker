@@ -1,7 +1,9 @@
 """Add wallets and transfers tables and attach wallet_id to transactions."""
 
 from datetime import UTC, datetime
+
 import sqlalchemy as sa
+
 from alembic import context, op
 
 revision = "0004_wallets_and_transfers"
