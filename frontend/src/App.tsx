@@ -9,6 +9,7 @@ import { BudgetPage } from "./pages/BudgetPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { TransactionsPage } from "./pages/TransactionsPage";
+import { WalletsPage } from "./pages/WalletsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -90,6 +91,14 @@ function App() {
                   element={
                     <AuthGuard>
                       <BudgetPage />
+                    </AuthGuard>
+                  }
+                />
+                <Route
+                  path="/wallets"
+                  element={
+                    <AuthGuard>
+                      <WalletsPage />
                     </AuthGuard>
                   }
                 />

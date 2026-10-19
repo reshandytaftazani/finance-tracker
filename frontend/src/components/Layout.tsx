@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Activity, ArrowLeftRight, LayoutDashboard, LogOut, ShieldCheck, Wallet } from "lucide-react";
+import { Activity, ArrowLeftRight, LayoutDashboard, LogOut, PiggyBank, ShieldCheck, Wallet } from "lucide-react";
 import React from "react";
 import { flushSync } from "react-dom";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -29,7 +29,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     : [
         { label: "Dashboard", path: "/", icon: LayoutDashboard },
         { label: "Transaksi", path: "/transactions", icon: ArrowLeftRight },
-        { label: "Budget", path: "/budgets", icon: Wallet },
+        { label: "Budget", path: "/budgets", icon: PiggyBank },
+        { label: "Dompet", path: "/wallets", icon: Wallet },
       ];
 
   return (
@@ -126,7 +127,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         {/* Mobile Navigation */}
         {navItems.length > 0 && (
-          <nav aria-label="Navigasi utama" className="finance-shell finance-mobile-nav lg:hidden grid grid-cols-3 gap-1">
+          <nav aria-label="Navigasi utama" className="finance-shell finance-mobile-nav lg:hidden grid grid-cols-4 gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
