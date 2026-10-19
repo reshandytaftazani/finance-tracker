@@ -4,32 +4,66 @@ import type { FormEvent } from "react";
 import { ApiError, invalidateTransactionQueries, saveTransaction } from "../api/transactions";
 import { jakartaToday, transactionPayload, validateTransaction } from "../lib/transactions";
 import type { Category, FieldErrors, Transaction, TransactionDraft } from "../lib/transactions";
+import type { WalletItem } from "../lib/wallets";
 
 interface Props {
   transaction: Transaction | null;
   categories: Category[];
   categoriesReady: boolean;
+  wallets?: WalletItem[];
+  walletsReady?: boolean;
   onCancel: () => void;
   onSaved: () => void;
 }
 
-export function TransactionForm({ transaction, categories, categoriesReady, onCancel, onSaved }: Props) {
-  const [draft, setDraft] = useState<TransactionDraft>(() => transaction ? {
-    date: transaction.date, type: transaction.type, category_id: String(transaction.category_id),
-    amount_rupiah: transaction.amount_rupiah, description: transaction.description,
-  } : { date: jakartaToday(), type: "expense", category_id: "", amount_rupiah: "", description: "" });
+export function TransactionForm({
+  transaction,
+  categories,
+  categoriesReady,
+  wallets,
+  walletsReady = true,
+  onCancel,
+  onSaved,
+}: Props) {
+  const [draft, setDraft] = useState<TransactionDraft>(() =>
+    transaction
+      ? {
+          date: transaction.date,
+          type: transaction.type,
+          category_id: String(transaction.category_id),
+          wallet_id: transaction.wallet_id
+            ? String(transaction.wallet_id)
+            : wallets && wallets.length > 0
+            ? String(wallets[0].id)
+            : "",
+          amount_rupiah: transaction.amount_rupiah,
+          description: transaction.description,
+        }
+      : {
+          date: jakartaToday(),
+          type: "expense",
+          category_id: "",
+          wallet_id: wallets && wallets.length > 0 ? String(wallets[0].id) : "",
+          amount_rupiah: "",
+          description: "",
+        }
+  );
   const [errors, setErrors] = useState<FieldErrors>({});
   const formRef = useRef<HTMLFormElement>(null);
   const locked = useRef(false);
   const focusAfterSubmit = useRef(false);
+  const selectedWalletId = draft.wallet_id || (wallets && wallets.length > 0 ? String(wallets[0].id) : "");
+  const effectiveDraft: TransactionDraft = { ...draft, wallet_id: selectedWalletId };
+
   const client = useQueryClient();
   const mutation = useMutation({
-    mutationFn: () => saveTransaction(transactionPayload(draft), transaction?.id),
+    mutationFn: () => saveTransaction(transactionPayload(effectiveDraft), transaction?.id),
     onSuccess: async () => {
       await invalidateTransactionQueries(client);
       onSaved();
     },
   });
+
   useEffect(() => { formRef.current?.querySelector<HTMLInputElement>("[name=date]")?.focus(); }, []);
   useEffect(() => {
     // Server errors arrive while the fieldset may still be disabled. Focus only
@@ -54,7 +88,7 @@ export function TransactionForm({ transaction, categories, categoriesReady, onCa
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (locked.current || !categoriesReady) return;
-    const next = validateTransaction(draft, categories);
+    const next = validateTransaction(effectiveDraft, categories, wallets);
     setErrors(next);
     if (Object.keys(next).length) { focusError(next); return; }
     locked.current = true;
@@ -102,6 +136,28 @@ export function TransactionForm({ transaction, categories, categoriesReady, onCa
             {categoriesReady && !categories.some((category) => category.type === draft.type) && <p className="text-sm text-slate-600 dark:text-slate-400">Belum ada kategori untuk tipe ini. Siapkan kategori melalui API sebelum mencatat transaksi.</p>}
           </div>
           <div className="transaction-field">
+            <label htmlFor="transaction-wallet_id">Dompet / Rekening</label>
+            <select
+              {...attributes("wallet_id")}
+              className="transaction-control"
+              required
+              disabled={!walletsReady || mutation.isPending}
+              value={selectedWalletId}
+              onChange={(event) => change("wallet_id", event.target.value)}
+            >
+              <option value="">Pilih dompet</option>
+              {(wallets ?? []).map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+            {errorText("wallet_id")}
+            {walletsReady && wallets && wallets.length === 0 && (
+              <p className="text-sm text-slate-600 dark:text-slate-400">Belum ada dompet. Tambahkan dompet terlebih dahulu di menu Dompet.</p>
+            )}
+          </div>
+          <div className="transaction-field sm:col-span-2">
             <label htmlFor="transaction-amount_rupiah">Nominal (Rp)</label>
             <input {...attributes("amount_rupiah")} className="transaction-control tabular-nums" type="text" inputMode="numeric" required autoComplete="off" value={draft.amount_rupiah} onChange={(event) => change("amount_rupiah", event.target.value)} />
             <p id="amount_rupiah-hint" className="text-sm text-slate-600 dark:text-slate-400">Contoh: 150000. Tanpa titik, koma, atau pecahan.</p>

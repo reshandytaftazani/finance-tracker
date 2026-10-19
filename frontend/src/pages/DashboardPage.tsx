@@ -25,12 +25,14 @@ import {
   fetchRecentTransactions,
 } from "../api/analytics";
 import { fetchCategories } from "../api/transactions";
+import { fetchWallets } from "../api/wallets";
 import { Money } from "../components/Money";
 import { ExpenseChart } from "../components/ExpenseChart";
 import { AllocationPieChart } from "../components/AllocationPieChart";
 import { ExpenseForecast } from "../components/ExpenseForecast";
 import { formatDate, formatRupiah } from "../lib/formatters";
 import { jakartaToday, monthRange } from "../lib/transactions";
+import { WALLET_TYPE_LABELS } from "../lib/wallets";
 
 export const DashboardPage: React.FC = () => {
   const [month, setMonth] = useState<string>(() => jakartaToday().slice(0, 7));
@@ -82,6 +84,11 @@ export const DashboardPage: React.FC = () => {
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
     queryFn: ({ signal }) => fetchCategories(signal),
+  });
+
+  const walletsQuery = useQuery({
+    queryKey: ["wallets"],
+    queryFn: ({ signal }) => fetchWallets(signal),
   });
 
   const categoryMap = new Map<number, string>(
@@ -307,6 +314,57 @@ export const DashboardPage: React.FC = () => {
             <p className="text-xs text-teal-800/90 dark:text-teal-300/80 mt-2 font-medium">Pemasukan dikurangi pengeluaran</p>
           </div>
         </article>
+      </section>
+
+      {/* Ringkasan Saldo Dompet */}
+      <section aria-labelledby="wallets-overview-title" className="finance-panel p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-teal-600 dark:text-teal-400" aria-hidden="true" />
+            <h2 id="wallets-overview-title" className="text-base font-semibold text-slate-900 dark:text-slate-100">
+              Saldo Dompet & Rekening
+            </h2>
+          </div>
+          <Link
+            to="/wallets"
+            className="text-xs font-medium text-teal-700 dark:text-teal-400 hover:text-teal-800 dark:hover:text-teal-300 inline-flex items-center gap-1"
+          >
+            Kelola Dompet & Transfer <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+          </Link>
+        </div>
+
+        {walletsQuery.isPending && (
+          <p role="status" className="py-4 text-xs text-slate-500 dark:text-slate-400">
+            Memuat saldo dompet…
+          </p>
+        )}
+
+        {walletsQuery.isSuccess && (walletsQuery.data.items.length === 0 ? (
+          <p className="py-4 text-xs text-slate-500 dark:text-slate-400">
+            Belum ada dompet. Buka halaman Dompet untuk menambahkan rekening bank atau dompet tunai.
+          </p>
+        ) : (
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {walletsQuery.data.items.map((w) => (
+              <div
+                key={w.id}
+                className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 p-3"
+              >
+                <div className="flex items-center justify-between gap-1 text-xs">
+                  <span className="font-medium text-slate-700 dark:text-slate-300 truncate" title={w.name}>
+                    {w.name}
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 shrink-0">
+                    {WALLET_TYPE_LABELS[w.type] ?? w.type}
+                  </span>
+                </div>
+                <div className="mt-1 font-mono text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <Money amount={w.current_balance_rupiah} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
       </section>
 
       {/* Sorotan & Analisis Keuangan (Rule-Based Insights) */}

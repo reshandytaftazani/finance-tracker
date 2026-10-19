@@ -2,6 +2,7 @@ import { Download, Plus, RotateCcw, Search, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { exportTransactions, fetchCategories, fetchTransactions } from "../api/transactions";
+import { fetchWallets } from "../api/wallets";
 import { DeleteTransactionDialog } from "../components/DeleteTransactionDialog";
 import { TransactionForm } from "../components/TransactionForm";
 import { AnimatedRegion } from "../components/AnimatedRegion";
@@ -15,6 +16,7 @@ export function TransactionsPage() {
     month: jakartaToday().slice(0, 7),
     type: "all",
     category_id: "all",
+    wallet_id: "all",
     page: 1,
   }));
   const [searchInput, setSearchInput] = useState("");
@@ -36,9 +38,12 @@ export function TransactionsPage() {
   const allMonths = filters.month === "all";
   const validMonth = allMonths || Boolean(monthRange(filters.month));
   const categories = useQuery({ queryKey: ["categories"], queryFn: ({ signal }) => fetchCategories(signal) });
+  const walletsQuery = useQuery({ queryKey: ["wallets"], queryFn: ({ signal }) => fetchWallets(signal) });
   const list = useQuery({ queryKey: ["transactions", filters], queryFn: ({ signal }) => fetchTransactions(filters, signal), enabled: validMonth });
   const categoryItems = categories.data ?? [];
   const categoriesReady = categories.isSuccess;
+  const walletItems = walletsQuery.data?.items ?? [];
+  const walletsReady = walletsQuery.isSuccess;
   const totalPages = Math.max(1, Math.ceil((list.data?.total ?? 0) / 20));
 
   useEffect(() => {
@@ -108,6 +113,7 @@ export function TransactionsPage() {
     filters.month !== jakartaToday().slice(0, 7) ||
     filters.type !== "all" ||
     filters.category_id !== "all" ||
+    (filters.wallet_id && filters.wallet_id !== "all") ||
     filters.search ||
     filters.min_amount ||
     filters.max_amount ||
@@ -132,6 +138,7 @@ export function TransactionsPage() {
       month: jakartaToday().slice(0, 7),
       type: "all",
       category_id: "all",
+      wallet_id: "all",
       page: 1,
       search: undefined,
       min_amount: undefined,
@@ -209,13 +216,13 @@ export function TransactionsPage() {
         <button type="button" className="transaction-button mt-3" onClick={() => void categories.refetch()} disabled={categories.isFetching}>{categories.isFetching ? "Memuat kategori…" : "Coba lagi kategori"}</button>
       </div>}
       {categories.isPending && <p role="status" className="text-sm text-slate-600 dark:text-slate-400">Memuat kategori…</p>}
-      <AnimatedRegion>{editor && <TransactionForm key={editor.transaction?.id ?? "new"} transaction={editor.transaction} categories={categoryItems} categoriesReady={categoriesReady} onCancel={closeEditor} onSaved={() => {
+      <AnimatedRegion>{editor && <TransactionForm key={editor.transaction?.id ?? "new"} transaction={editor.transaction} categories={categoryItems} categoriesReady={categoriesReady} wallets={walletItems} walletsReady={walletsReady} onCancel={closeEditor} onSaved={() => {
         setNotice(`Transaksi berhasil ${editor.transaction ? "diperbarui" : "ditambahkan"}. Daftar tetap mengikuti filter aktif.`);
         closeEditor();
       }} />}</AnimatedRegion>
 
       <section aria-label="Filter transaksi" className="finance-panel finance-filter-bar space-y-4">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-4">
           <div className="transaction-field">
             <label htmlFor="filter-month">Bulan</label>
             <input id="filter-month" name="filter-month" className="transaction-control" type="month" min="0001-01" max="9999-12" value={allMonths ? monthBeforeAll : filters.month} disabled={allMonths} aria-invalid={!validMonth} aria-describedby="filter-month-error" onChange={(event) => updateFilter({ month: event.target.value })} />
@@ -241,6 +248,13 @@ export function TransactionsPage() {
             <select id="filter-category" name="filter-category" className="transaction-control" value={filters.category_id} disabled={!categoriesReady} onChange={(event) => updateFilter({ category_id: event.target.value })}>
               <option value="all">Semua kategori</option>
               {categoryItems.filter((category) => filters.type === "all" || category.type === filters.type).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            </select>
+          </div>
+          <div className="transaction-field">
+            <label htmlFor="filter-wallet">Dompet</label>
+            <select id="filter-wallet" name="filter-wallet" className="transaction-control" value={filters.wallet_id ?? "all"} disabled={!walletsReady} onChange={(event) => updateFilter({ wallet_id: event.target.value })}>
+              <option value="all">Semua dompet</option>
+              {walletItems.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
             </select>
           </div>
         </div>
@@ -335,13 +349,20 @@ export function TransactionsPage() {
               <table className="finance-table w-full min-w-[760px] border-collapse text-left text-sm">
                 <caption className="sr-only">Transaksi {allMonths ? "semua bulan" : `bulan ${filters.month}`}, sesuai filter tipe, kategori, pencarian, dan nominal.</caption>
                 <thead><tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 text-slate-600 dark:text-slate-400">
-                  <th scope="col" className="px-4 py-3 font-medium">Tanggal</th><th scope="col" className="px-4 py-3 font-medium">Kategori</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Tanggal</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Dompet</th>
+                  <th scope="col" className="px-4 py-3 font-medium">Kategori</th>
                   <th scope="col" className="px-4 py-3 font-medium">Deskripsi</th><th scope="col" className="px-4 py-3 font-medium">Tipe</th>
                   <th scope="col" className="px-4 py-3 text-right font-medium">Nominal</th><th scope="col" className="px-4 py-3 font-medium">Aksi</th>
                 </tr></thead>
                 <tbody key={JSON.stringify(filters)} className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {list.data?.items.map((transaction) => <tr key={transaction.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
                     <td className="whitespace-nowrap px-4 py-3 text-slate-600 dark:text-slate-400">{formatDate(transaction.date)}</td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                        {walletItems.find((w) => w.id === transaction.wallet_id)?.name ?? `Dompet #${transaction.wallet_id}`}
+                      </span>
+                    </td>
                     <td className="max-w-48 break-words px-4 py-3 text-slate-900 dark:text-slate-100">{categoryItems.find((category) => category.id === transaction.category_id)?.name ?? `Kategori #${transaction.category_id}`}</td>
                     <td className="max-w-64 whitespace-pre-wrap break-words px-4 py-3 text-slate-700 dark:text-slate-300">{transaction.description || <span className="text-slate-500 dark:text-slate-400 italic">Tanpa deskripsi</span>}</td>
                     <td className={`px-4 py-3 font-medium ${transaction.type === "income" ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}>{transaction.type === "income" ? "Pemasukan" : "Pengeluaran"}</td>
@@ -351,7 +372,7 @@ export function TransactionsPage() {
                       <button type="button" className="transaction-button text-rose-700 dark:text-rose-400" aria-label={`Hapus transaksi ${transaction.description || transaction.id}`} disabled={Boolean(editor)} onClick={() => { opener.current = document.activeElement as HTMLElement; setDeleting(transaction); }}>Hapus</button>
                     </div></td>
                   </tr>)}
-                  {list.data?.items.length === 0 && <tr><td colSpan={6} className="px-4 py-12 text-center">
+                  {list.data?.items.length === 0 && <tr><td colSpan={7} className="px-4 py-12 text-center">
                     <h2 className="font-medium text-slate-900 dark:text-slate-100">Tidak ada transaksi yang ditemukan</h2>
                     <p className="mt-2 text-slate-600 dark:text-slate-400">Belum ada catatan yang sesuai filter. Ubah filter atau tambah transaksi baru.</p>
                     {hasActiveFilters && (
