@@ -77,7 +77,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await requestResponse(path, options);
   if (response.status === 204) return undefined as T;
   return JSON.parse(await response.text(), (key, value) => {
-    if (key === "id" || key === "category_id") assertSafeIdentifier(value);
+    if (key === "id" || key === "category_id" || key === "wallet_id") assertSafeIdentifier(value);
     return value;
   });
 }
@@ -101,6 +101,10 @@ function filterParams(filters: TransactionFilters): URLSearchParams {
   if (filters.category_id !== "all") {
     assertSafeIdentifier(Number(filters.category_id));
     params.set("category_id", filters.category_id);
+  }
+  if (filters.wallet_id !== undefined && filters.wallet_id !== "all" && filters.wallet_id !== "") {
+    assertSafeIdentifier(Number(filters.wallet_id));
+    params.set("wallet_id", filters.wallet_id);
   }
   if (filters.search && filters.search.trim()) {
     params.set("search", filters.search.trim());
@@ -132,6 +136,7 @@ export async function exportTransactions(filters: TransactionFilters, signal?: A
 
 export async function saveTransaction(payload: TransactionPayload, id?: number): Promise<Transaction> {
   assertSafeIdentifier(payload.category_id);
+  if (payload.wallet_id !== undefined) assertSafeIdentifier(payload.wallet_id);
   if (id !== undefined) assertSafeIdentifier(id);
   return request(`/api/v1/transactions${id === undefined ? "" : `/${id}`}`, {
     method: id === undefined ? "POST" : "PATCH", body: JSON.stringify(payload),
@@ -149,5 +154,6 @@ export async function invalidateTransactionQueries(client: QueryClient): Promise
     client.invalidateQueries({ queryKey: ["transactions"] }),
     client.invalidateQueries({ queryKey: ["analytics"] }),
     client.invalidateQueries({ queryKey: ["budgets"] }),
+    client.invalidateQueries({ queryKey: ["wallets"] }),
   ]);
 }
