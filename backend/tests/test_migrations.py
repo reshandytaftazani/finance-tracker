@@ -18,7 +18,7 @@ from sqlmodel import Session, SQLModel, select
 from alembic import command
 from app.config import Settings
 from app.db import create_db_engine
-from app.models import Category, Owner, Transaction
+from app.models import Category, Owner, Transaction, Wallet
 from app.validation import MAX_AMOUNT_RUPIAH
 from scripts import seed
 from scripts.migrate import BACKEND_DIR, alembic_config, upgrade_database
@@ -61,6 +61,8 @@ def test_empty_database_upgrade_twice_matches_models_and_has_no_seed_data(
         "transactions",
         "budgets",
         "user_sessions",
+        "wallets",
+        "transfers",
     }
     assert snapshot(empty_engine) == {
         "owners": [],
@@ -71,7 +73,7 @@ def test_empty_database_upgrade_twice_matches_models_and_has_no_seed_data(
         migration = MigrationContext.configure(
             connection, opts={"compare_type": True, "compare_server_default": True}
         )
-        assert migration.get_current_heads() == ("0003_owner_password_and_sessions",)
+        assert migration.get_current_heads() == ("0004_wallets_and_transfers",)
         assert compare_metadata(migration, SQLModel.metadata) == []
         assert connection.exec_driver_sql("PRAGMA foreign_keys").scalar_one() == 1
         assert connection.exec_driver_sql("PRAGMA foreign_key_check").all() == []
@@ -85,7 +87,15 @@ def test_migration_constraints_and_index_definitions_match_models(
         SQLModel.metadata.create_all(reference)
         expected = inspect(reference)
         actual = inspect(migrated_engine)
-        for table in ("owners", "categories", "transactions", "budgets", "user_sessions"):
+        for table in (
+            "owners",
+            "categories",
+            "transactions",
+            "budgets",
+            "user_sessions",
+            "wallets",
+            "transfers",
+        ):
             for method in (
                 "get_pk_constraint",
                 "get_foreign_keys",
@@ -93,9 +103,13 @@ def test_migration_constraints_and_index_definitions_match_models(
                 "get_check_constraints",
                 "get_indexes",
             ):
-                assert getattr(actual, method)(table) == getattr(expected, method)(
-                    table
-                )
+                actual_val = getattr(actual, method)(table)
+                expected_val = getattr(expected, method)(table)
+                if isinstance(actual_val, list) and isinstance(expected_val, list):
+                    sort_key = lambda d: d.get("name") or str(sorted(d.items()))
+                    assert sorted(actual_val, key=sort_key) == sorted(expected_val, key=sort_key)
+                else:
+                    assert actual_val == expected_val
         with reference.connect() as first, migrated_engine.connect() as second:
             query = "SELECT name, sql FROM sqlite_master WHERE type='index' AND sql IS NOT NULL ORDER BY name"
             assert (
@@ -325,6 +339,9 @@ def test_upgrade_populated_copy_preserves_ids_owners_relations_and_exact_totals(
         session.add(
             Category(id=5_000_000_001, owner_id=2, name="Kategori lain", type="expense")
         )
+        session.add(
+            Wallet(id=2, owner_id=2, name="Dompet 2", type="bank", initial_balance_rupiah=0)
+        )
         session.commit()
         session.add_all(
             [
@@ -332,6 +349,7 @@ def test_upgrade_populated_copy_preserves_ids_owners_relations_and_exact_totals(
                     id=6_000_000_001,
                     owner_id=1,
                     category_id=2,
+                    wallet_id=1,
                     type="expense",
                     amount_rupiah=MAX_AMOUNT_RUPIAH,
                     date=date(2024, 2, 29),
@@ -340,6 +358,7 @@ def test_upgrade_populated_copy_preserves_ids_owners_relations_and_exact_totals(
                     id=6_000_000_002,
                     owner_id=2,
                     category_id=5_000_000_001,
+                    wallet_id=2,
                     type="expense",
                     amount_rupiah=150000,
                     date=date(2024, 3, 1),
@@ -464,7 +483,7 @@ def test_actual_commands_and_backend_restart_keep_fixture_transactions(tmp_path)
         return result.stdout
 
     run("-m", "scripts.migrate")
-    assert "0003_owner_password_and_sessions" in run("-m", "alembic", "current")
+    assert "0004_wallets_and_transfers" in run("-m", "alembic", "current")
     run("-m", "alembic", "check")
     assert "dibuat" in run("-m", "scripts.seed")
     assert "tidak diubah" in run("-m", "scripts.seed")
@@ -475,6 +494,7 @@ def test_actual_commands_and_backend_restart_keep_fixture_transactions(tmp_path)
                 Transaction(
                     owner_id=1,
                     category_id=2,
+                    wallet_id=1,
                     type="expense",
                     amount_rupiah=150000,
                     date=date(2024, 1, 1),

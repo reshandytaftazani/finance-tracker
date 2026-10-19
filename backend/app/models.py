@@ -192,6 +192,102 @@ class Budget(TimestampedModel, table=True):
     year: int = Field(sa_column=Column(Integer, nullable=False))
 
 
+WalletType = Literal["cash", "bank", "ewallet", "investment", "other"]
+
+
+class Wallet(TimestampedModel, table=True):
+    __tablename__ = "wallets"
+    __table_args__ = (
+        CheckConstraint("length(name) BETWEEN 1 AND 50", name="wallet_name_length"),
+        CheckConstraint(
+            "type IN ('cash', 'bank', 'ewallet', 'investment', 'other')",
+            name="wallet_type",
+        ),
+        CheckConstraint(
+            f"initial_balance_rupiah BETWEEN 0 AND {MAX_AMOUNT_RUPIAH}",
+            name="initial_balance_range",
+        ),
+        CheckConstraint(
+            "typeof(initial_balance_rupiah) = 'integer'", name="initial_balance_integer"
+        ).ddl_if(dialect="sqlite"),
+        UniqueConstraint("owner_id", "name", name="uq_wallets_owner_name"),
+        UniqueConstraint("owner_id", "id", name="uq_wallets_owner_id"),
+        ForeignKeyConstraint(
+            ["owner_id"],
+            ["owners.id"],
+            name="fk_wallets_owner",
+            onupdate="RESTRICT",
+            ondelete="RESTRICT",
+        ),
+    )
+
+    id: int | None = Field(default=None, sa_column=Column(INT64, primary_key=True))
+    owner_id: int = Field(sa_column=Column(INT64, nullable=False))
+    name: str = Field(sa_column=Column(Text, nullable=False))
+    type: WalletType = Field(
+        default="bank",
+        sa_column=Column(Text, nullable=False, server_default=text("'bank'")),
+    )
+    initial_balance_rupiah: int = Field(
+        default=0,
+        sa_column=Column(INT64, nullable=False, server_default=text("0")),
+    )
+
+
+class Transfer(TimestampedModel, table=True):
+    __tablename__ = "transfers"
+    __table_args__ = (
+        CheckConstraint(
+            f"amount_rupiah BETWEEN 1 AND {MAX_AMOUNT_RUPIAH}",
+            name="transfer_amount_range",
+        ),
+        CheckConstraint(
+            "typeof(amount_rupiah) = 'integer'", name="transfer_amount_integer"
+        ).ddl_if(dialect="sqlite"),
+        CheckConstraint(
+            "from_wallet_id != to_wallet_id", name="different_wallets"
+        ),
+        CheckConstraint(
+            "length(description) <= 200", name="transfer_description_length"
+        ),
+        CheckConstraint(
+            "notes IS NULL OR length(notes) <= 1000", name="transfer_notes_length"
+        ),
+        ForeignKeyConstraint(
+            ["owner_id"],
+            ["owners.id"],
+            name="fk_transfers_owner",
+            onupdate="RESTRICT",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["owner_id", "from_wallet_id"],
+            ["wallets.owner_id", "wallets.id"],
+            name="fk_transfers_from_wallet",
+            onupdate="RESTRICT",
+            ondelete="RESTRICT",
+        ),
+        ForeignKeyConstraint(
+            ["owner_id", "to_wallet_id"],
+            ["wallets.owner_id", "wallets.id"],
+            name="fk_transfers_to_wallet",
+            onupdate="RESTRICT",
+            ondelete="RESTRICT",
+        ),
+    )
+
+    id: int | None = Field(default=None, sa_column=Column(INT64, primary_key=True))
+    owner_id: int = Field(sa_column=Column(INT64, nullable=False))
+    from_wallet_id: int = Field(sa_column=Column(INT64, nullable=False))
+    to_wallet_id: int = Field(sa_column=Column(INT64, nullable=False))
+    amount_rupiah: int = Field(sa_column=Column(INT64, nullable=False))
+    date: calendar_date = Field(sa_column=Column(Date, nullable=False))
+    description: str = Field(
+        default="", sa_column=Column(Text, nullable=False, server_default=text("''"))
+    )
+    notes: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+
+
 class Transaction(TimestampedModel, table=True):
     __tablename__ = "transactions"
     __table_args__ = (
@@ -218,11 +314,21 @@ class Transaction(TimestampedModel, table=True):
             onupdate="RESTRICT",
             ondelete="RESTRICT",
         ),
+        ForeignKeyConstraint(
+            ["owner_id", "wallet_id"],
+            ["wallets.owner_id", "wallets.id"],
+            name="fk_transactions_wallet",
+            onupdate="RESTRICT",
+            ondelete="RESTRICT",
+        ),
     )
 
     id: int | None = Field(default=None, sa_column=Column(INT64, primary_key=True))
     owner_id: int = Field(sa_column=Column(INT64, nullable=False))
     category_id: int = Field(sa_column=Column(INT64, nullable=False))
+    wallet_id: int = Field(
+        sa_column=Column(INT64, nullable=False, server_default=text("1"))
+    )
     type: TransactionType = Field(sa_column=Column(Text, nullable=False))
     amount_rupiah: int = Field(sa_column=Column(INT64, nullable=False))
     date: calendar_date = Field(sa_column=Column(Date, nullable=False))
@@ -244,6 +350,19 @@ Index(
     Transaction.category_id,
     Transaction.date.desc(),
     Transaction.id.desc(),
+)
+Index(
+    "ix_transactions_owner_wallet_date_id",
+    Transaction.owner_id,
+    Transaction.wallet_id,
+    Transaction.date.desc(),
+    Transaction.id.desc(),
+)
+Index(
+    "ix_transfers_owner_date_id",
+    Transfer.owner_id,
+    Transfer.date.desc(),
+    Transfer.id.desc(),
 )
 
 
@@ -286,3 +405,31 @@ def validate_budget(_mapper, _connection, budget: Budget) -> None:
             raise ValueError(
                 "Stored budget amount and period must be integers within range"
             )
+
+
+@event.listens_for(Wallet, "before_insert")
+@event.listens_for(Wallet, "before_update")
+def clean_wallet(_mapper, _connection, wallet: Wallet) -> None:
+    wallet.name = clean_text(wallet.name, max_length=50, required=True)
+    if (
+        type(wallet.initial_balance_rupiah) is not int
+        or not 0 <= wallet.initial_balance_rupiah <= MAX_AMOUNT_RUPIAH
+    ):
+        raise ValueError("Stored initial balance must be an integer rupiah >= 0")
+
+
+@event.listens_for(Transfer, "before_insert")
+@event.listens_for(Transfer, "before_update")
+def clean_transfer(_mapper, _connection, transfer: Transfer) -> None:
+    transfer.description = clean_text(transfer.description, max_length=200)
+    transfer.notes = clean_notes(transfer.notes)
+    if (
+        type(transfer.amount_rupiah) is not int
+        or not 1 <= transfer.amount_rupiah <= MAX_AMOUNT_RUPIAH
+    ):
+        raise ValueError("Stored transfer amount must be an integer rupiah within range")
+    if type(transfer.date) is not calendar_date:
+        raise ValueError("Stored date must be a calendar date without time or timezone")
+    if transfer.from_wallet_id == transfer.to_wallet_id:
+        raise ValueError("Source and destination wallets must be different")
+

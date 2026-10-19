@@ -6,7 +6,7 @@ from sqlmodel import Session
 from app.config import get_settings
 from app.db import engine
 from app.dependencies import LOCAL_OWNER_ID
-from app.models import Category, Owner, TransactionType
+from app.models import Category, Owner, TransactionType, Wallet
 from app.validation import normalize_category_name
 
 DEFAULT_CATEGORIES: tuple[tuple[str, TransactionType], ...] = (
@@ -26,6 +26,14 @@ def bootstrap_local_owner(bind: Engine, *, mode: str = "local") -> bool:
             return False
         session.add(Owner(id=LOCAL_OWNER_ID, display_name="Pemilik Lokal"))
         session.flush()
+        session.add(
+            Wallet(
+                owner_id=LOCAL_OWNER_ID,
+                name="Dompet Utama",
+                type="bank",
+                initial_balance_rupiah=0,
+            )
+        )
         for raw_name, category_type in DEFAULT_CATEGORIES:
             name, normalized_name = normalize_category_name(raw_name)
             session.add(
