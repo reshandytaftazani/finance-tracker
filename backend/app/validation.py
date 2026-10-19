@@ -57,3 +57,16 @@ def parse_local_date(value: object) -> date:
     ):
         raise ValueError("Date must use YYYY-MM-DD without time or timezone")
     return date.fromisoformat(value)
+
+
+def parse_initial_balance_rupiah(value: object) -> int:
+    if not isinstance(value, str) or re.fullmatch(r"[0-9]+", value) is None:
+        raise ValueError("Initial balance must be an ASCII digit string")
+    digits = value.lstrip("0") or "0"
+    maximum = str(MAX_AMOUNT_RUPIAH)
+    if (
+        len(digits) > len(maximum)
+        or (len(digits) == len(maximum) and digits > maximum)
+    ):
+        raise ValueError(f"Initial balance must be between 0 and {MAX_AMOUNT_RUPIAH}")
+    return int(digits)

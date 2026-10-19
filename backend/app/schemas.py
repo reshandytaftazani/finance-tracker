@@ -15,13 +15,14 @@ from pydantic import (
     field_validator,
 )
 
-from app.models import TransactionType
+from app.models import TransactionType, WalletType
 from app.validation import (
     MAX_AMOUNT_RUPIAH,
     clean_notes,
     clean_text,
     normalize_category_name,
     parse_amount_rupiah,
+    parse_initial_balance_rupiah,
     parse_local_date,
 )
 
@@ -52,6 +53,24 @@ Notes = Annotated[
     Annotated[str, Field(max_length=1000)] | None, BeforeValidator(clean_notes)
 ]
 CategoryID = Annotated[int, Field(strict=True, ge=1, le=2**63 - 1)]
+WalletID = Annotated[int, Field(strict=True, ge=1, le=2**63 - 1)]
+WalletName = Annotated[
+    str,
+    BeforeValidator(lambda value: clean_text(value, max_length=50, required=True)),
+    Field(min_length=1, max_length=50),
+]
+InitialBalanceInput = Annotated[
+    int,
+    BeforeValidator(parse_initial_balance_rupiah),
+    PlainSerializer(str, return_type=str, when_used="json"),
+    WithJsonSchema({"type": "string", "pattern": "^[0-9]+$"}),
+]
+InitialBalanceRead = Annotated[
+    int,
+    Field(strict=True, ge=0, le=MAX_AMOUNT_RUPIAH),
+    PlainSerializer(str, return_type=str, when_used="json"),
+    WithJsonSchema({"type": "string", "pattern": "^[0-9]+$"}, mode="serialization"),
+]
 
 
 def normalize_utc(value: datetime) -> datetime:
@@ -299,3 +318,34 @@ class BudgetStatus(BaseModel):
     month: BudgetMonth
     year: BudgetYear
     items: list[BudgetStatusItem]
+
+
+class WalletCreate(InputSchema):
+    name: WalletName
+    type: WalletType = "bank"
+    initial_balance_rupiah: InitialBalanceInput = Field(default=0)
+
+
+class WalletUpdate(InputSchema):
+    name: WalletName | None = None
+    type: WalletType | None = None
+    initial_balance_rupiah: InitialBalanceInput | None = None
+
+    @field_validator("name", "type", "initial_balance_rupiah", mode="before")
+    @classmethod
+    def reject_null(cls, value):
+        if value is None:
+            raise ValueError("Field cannot be null; omit it to keep the existing value")
+        return value
+
+
+class WalletRead(ReadSchema):
+    name: str
+    type: WalletType
+    initial_balance_rupiah: InitialBalanceRead
+    current_balance_rupiah: NetCashFlow
+
+
+class WalletListResponse(BaseModel):
+    items: list[WalletRead]
+    total_net_worth_rupiah: NetCashFlow
